@@ -103,8 +103,11 @@ enum DrawnGeometry {
 
     /// 2D convex hull (Andrew's monotone chain), returned counter-clockwise.
     static func convexHull(_ input: [SIMD2<Float>]) -> [SIMD2<Float>] {
-        let points = Array(Set(input.map { Point($0) })).map { $0.v }.sorted {
-            $0.x == $1.x ? $0.y < $1.y : $0.x < $1.x
+        // De-duplicate near-identical points, then sort by x (then y).
+        let unique: [Point] = Array(Set(input.map { Point($0) }))
+        var points: [SIMD2<Float>] = unique.map { $0.v }
+        points.sort { a, b in
+            a.x == b.x ? a.y < b.y : a.x < b.x
         }
         guard points.count >= 3 else { return points }
 

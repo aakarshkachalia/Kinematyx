@@ -1,0 +1,40 @@
+{
+  "": {
+    "swift-dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/primary.swiftdeps"
+  },
+  "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/Sources/RobotArmKit/DHParameter.swift": {
+    "dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/DHParameter.d",
+    "object": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/DHParameter.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/DHParameter~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/DHParameter.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/DHParameter.dia"
+  },
+  "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/Sources/RobotArmKit/InverseKinematics.swift": {
+    "dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/InverseKinematics.d",
+    "object": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/InverseKinematics.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/InverseKinematics~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/InverseKinematics.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/InverseKinematics.dia"
+  },
+  "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/Sources/RobotArmKit/Joint.swift": {
+    "dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Joint.d",
+    "object": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Joint.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Joint~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Joint.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Joint.dia"
+  },
+  "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotArm.swift": {
+    "dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotArm.d",
+    "object": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotArm.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotArm~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotArm.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotArm.dia"
+  },
+  "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotDynamics.swift": {
+    "dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotDynamics.d",
+    "object": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotDynamics.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotDynamics~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotDynamics.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Desktop/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotDynamics.dia"
+  }
+}

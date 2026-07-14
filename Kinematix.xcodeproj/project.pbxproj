@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		70A668413000503300441CC5 /* RobotArmKit in Frameworks */ = {isa = PBXBuildFile; productRef = 70A668403000503300441CC5 /* RobotArmKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		70A6683130004BE400441CC5 /* Kinematix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kinematix.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				70A668413000503300441CC5 /* RobotArmKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = Kinematix;
 			packageProductDependencies = (
+				70A668403000503300441CC5 /* RobotArmKit */,
 			);
 			productName = Kinematix;
 			productReference = 70A6683130004BE400441CC5 /* Kinematix.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 70A6682830004BE400441CC5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				70A6683F3000503300441CC5 /* XCLocalSwiftPackageReference "RobotArmKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 70A6683230004BE400441CC5 /* Products */;
 			projectDirPath = "";
@@ -351,6 +360,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		70A6683F3000503300441CC5 /* XCLocalSwiftPackageReference "RobotArmKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = RobotArmKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		70A668403000503300441CC5 /* RobotArmKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RobotArmKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 70A6682930004BE400441CC5 /* Project object */;
 }

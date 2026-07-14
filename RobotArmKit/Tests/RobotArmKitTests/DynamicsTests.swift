@@ -39,16 +39,16 @@ struct DynamicsTests {
     @Test
     func torqueIsHigherWhenArmIsExtended() {
         let arm = RobotArm.ur5
-        // Shoulder out horizontal = long moment arm on the shoulder joint.
-        let extended = [0.0, -Double.pi / 2, 0.0, 0.0, 0.0, 0.0]
-        // Arm folded up = short moment arm.
-        let folded = [0.0, -0.1, 2.6, 0.0, 0.0, 0.0]
+        // All zeros = arm stretched out horizontally = long moment arm.
+        let extended = [Double](repeating: 0, count: 6)
+        // Shoulder rotated up so the arm points skyward = short horizontal arm.
+        let raised = [0.0, -Double.pi / 2, 0.0, 0.0, 0.0, 0.0]
 
         let tExtended = arm.jointTorques(jointAngles: extended, payloadMass: 1.0)
-        let tFolded = arm.jointTorques(jointAngles: folded, payloadMass: 1.0)
+        let tRaised = arm.jointTorques(jointAngles: raised, payloadMass: 1.0)
 
-        // Shoulder joint (index 1) should bear more torque extended than folded.
-        #expect(abs(tExtended[1]) > abs(tFolded[1]))
+        // Shoulder joint (index 1) should bear more torque extended than raised.
+        #expect(abs(tExtended[1]) > abs(tRaised[1]))
         // Adding a payload increases shoulder torque.
         let tNoPayload = arm.jointTorques(jointAngles: extended, payloadMass: 0)
         #expect(abs(tExtended[1]) > abs(tNoPayload[1]))

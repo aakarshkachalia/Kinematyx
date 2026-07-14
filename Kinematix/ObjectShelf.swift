@@ -11,10 +11,16 @@
 import SwiftUI
 
 struct ObjectShelf: View {
+    /// The store of user-drawn shapes.
+    var store: DrawnShapeStore
+    /// Opens the drawing sheet.
+    var onDraw: () -> Void
     /// Removes everything the user has placed.
     var onClear: () -> Void
 
-    private enum Mode: String, CaseIterable { case objects = "Objects", obstacles = "Obstacles" }
+    private enum Mode: String, CaseIterable {
+        case objects = "Objects", obstacles = "Obstacles", custom = "Custom"
+    }
     @State private var mode: Mode = .objects
 
     var body: some View {
@@ -24,19 +30,34 @@ struct ObjectShelf: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(width: 220)
+            .frame(width: 280)
 
             HStack(spacing: 14) {
-                if mode == .objects {
+                switch mode {
+                case .objects:
                     ForEach(ObjectKind.allCases, id: \.self) { kind in
                         ShelfItem(label: kind.label, glyph: glyph(for: kind))
                             .draggable(SpawnPayload.object(kind))
                     }
-                } else {
+                case .obstacles:
                     ForEach(ObstacleKind.allCases, id: \.self) { kind in
                         ShelfItem(label: kind.label, glyph: obstacleGlyph(for: kind))
                             .draggable(SpawnPayload.obstacle(kind))
                     }
+                case .custom:
+                    ForEach(store.shapes) { shape in
+                        ShelfItem(label: "Shape", glyph: DrawnThumbnail(points: shape.points)
+                            .fill(Color(hue: shape.hue, saturation: 0.6, brightness: 0.85)))
+                            .draggable(SpawnPayload.drawn(shape.id))
+                    }
+                    Button(action: onDraw) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "pencil.and.outline").font(.title2)
+                                .frame(width: 40, height: 40)
+                            Text("Draw").font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.borderless)
                 }
 
                 Divider().frame(height: 40)
@@ -101,5 +122,25 @@ private struct RampGlyph: Shape {
         p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
         p.closeSubpath()
         return p
+    }
+}
+
+/// Thumbnail for a user-drawn shape: its normalized outline fitted into the tile.
+private struct DrawnThumbnail: Shape {
+    let points: [SIMD2<Float>]   // centered, roughly [-0.5, 0.5], Y up
+
+    func path(in rect: CGRect) -> Path {
+        guard points.count >= 3 else { return Path(ellipseIn: rect) }
+        let s = min(rect.width, rect.height) * 0.9
+        let cx = rect.midX, cy = rect.midY
+        // Map normalized (Y-up) to view coordinates (Y-down), centered in `rect`.
+        func map(_ p: SIMD2<Float>) -> CGPoint {
+            CGPoint(x: cx + CGFloat(p.x) * s, y: cy - CGFloat(p.y) * s)
+        }
+        var path = Path()
+        path.move(to: map(points[0]))
+        for p in points.dropFirst() { path.addLine(to: map(p)) }
+        path.closeSubpath()
+        return path
     }
 }

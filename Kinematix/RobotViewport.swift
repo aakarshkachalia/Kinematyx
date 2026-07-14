@@ -15,14 +15,26 @@ struct RobotViewport: View {
     var model: RobotViewModel
     var rig: CameraRig
     var controller: ArmController
+    var scene: SandboxScene
+    var challenges: ChallengeManager
+    var drawStore: DrawnShapeStore
 
-    /// Owns the RealityKit entities. Held as @State so it survives redraws.
-    @State private var scene = SandboxScene()
+    /// Current lighting/environment preset (Phase 7).
+    @State private var environment: EnvironmentPreset = .classroom
+    /// Whether the draw-a-shape sheet is showing.
+    @State private var showingDraw = false
 
-    /// Accent used sparingly for active states.
     private static let accent = Color(red: 0.36, green: 0.36, blue: 0.9)
-    /// Warm off-white world background (matches the floor for a seamless horizon).
-    private static let worldBackground = Color(red: 0.93, green: 0.92, blue: 0.89)
+
+    /// The SwiftUI background shows through the (transparent) RealityView; each
+    /// preset tints the "sky" to match its mood.
+    private var worldBackground: Color {
+        switch environment {
+        case .classroom: return Color(red: 0.93, green: 0.92, blue: 0.89)
+        case .factory:   return Color(red: 0.82, green: 0.80, blue: 0.74)
+        case .nightShift: return Color(red: 0.09, green: 0.10, blue: 0.14)
+        }
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -32,34 +44,52 @@ struct RobotViewport: View {
                     await scene.build(into: &content)
                     controller.attach(model: model, scene: scene)
 
-                    // One place drives everything each frame: advance the arm
-                    // animation, then sync the rendered arm + camera.
+                    // One place drives everything each frame.
                     scene.onFrame = { [weak scene] dt in
                         guard let scene else { return }
                         controller.tick(dt)
                         scene.updateArm(with: model.jointAngles)
-                        scene.updateCamera(position: rig.position, focus: rig.focus)
+                        scene.updateTrail()
+                        challenges.evaluate(scene: scene, controller: controller)
+                        if rig.followGripper {
+                            scene.updateCameraToGripper()
+                        } else {
+                            scene.updateCamera(position: rig.position, focus: rig.focus)
+                        }
                     }
                 }
 
-                // Transparent overlay that turns mouse/trackpad input into camera
-                // moves and clicks into pick/place actions.
                 ViewportInput(rig: rig) { point, size in
                     controller.handleClick(point: point, viewSize: size, rig: rig)
                 }
 
                 overlays
             }
-            // Drop a shelf item: raycast the drop point to the floor and spawn
-            // a physics object there (it falls from a small height and settles).
-            .dropDestination(for: ObjectKind.self) { items, location in
-                guard let kind = items.first,
-                      let hit = rig.groundHitPoint(viewSize: geo.size, point: location)
+            .dropDestination(for: SpawnPayload.self) { items, location in
+                guard let payload = items.first,
+                      let (origin, direction) = rig.ray(viewSize: geo.size, point: location)
                 else { return false }
-                scene.spawnObject(kind, at: SIMD3<Float>(hit.x, 0.4, hit.z))
+                let hit = scene.surfaceHit(origin: origin, direction: direction)
+                    ?? rig.groundHitPoint(viewSize: geo.size, point: location)
+                guard let hit else { return false }
+                switch payload {
+                case .object(let kind):   scene.dropObject(kind, onto: hit)
+                case .obstacle(let kind): scene.spawnObstacle(kind, at: hit)
+                case .drawn(let id):
+                    if let shape = drawStore.shape(id: id) { scene.dropDrawnObject(shape, onto: hit) }
+                }
                 return true
             }
-            .background(Self.worldBackground)
+            .background(worldBackground.animation(.easeInOut(duration: 0.6)))
+            .sheet(isPresented: $showingDraw) { DrawingSheet(store: drawStore) }
+            // Swap arm profile (Phase 10).
+            .onChange(of: model.profileIndex) { _, _ in
+                scene.setArm(model.arm, scale: model.displayScale)
+            }
+            // Apply the lighting preset (Phase 7).
+            .onChange(of: environment) { _, preset in
+                scene.setEnvironment(preset)
+            }
         }
     }
 
@@ -67,14 +97,22 @@ struct RobotViewport: View {
 
     private var overlays: some View {
         ZStack {
-            // Status badge, top-left.
-            VStack {
-                HStack {
-                    StatusBadge(status: controller.status, accent: Self.accent)
-                    Spacer()
-                }
+            // Status badge + teach/replay bar, top-left.
+            VStack(alignment: .leading, spacing: 10) {
+                StatusBadge(status: controller.status, accent: Self.accent)
+                TeachBar(controller: controller, accent: Self.accent)
                 Spacer()
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Camera presets + settings, top-right.
+            VStack(alignment: .trailing, spacing: 10) {
+                CameraPresetsBar { rig.apply($0) }
+                SettingsPanel(scene: scene, audio: controller.audio,
+                              environment: $environment, accent: Self.accent)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
 
             // Toast, top-center, only when there's a message.
             if let toast = controller.toast {
@@ -89,7 +127,9 @@ struct RobotViewport: View {
             // Object shelf, bottom-center.
             VStack {
                 Spacer()
-                ObjectShelf(onClear: { scene.clearObjects() })
+                ObjectShelf(store: drawStore,
+                            onDraw: { showingDraw = true },
+                            onClear: { scene.clearAll() })
             }
         }
         .padding(16)
@@ -123,8 +163,145 @@ private struct StatusBadge: View {
     private var dotColor: Color {
         switch status {
         case .idle:                       return .secondary
-        case .movingToObject, .movingToDrop, .holding: return accent
+        case .movingToObject, .movingToDrop, .holding, .replaying: return accent
         case .unreachable:                return .orange
+        }
+    }
+}
+
+// MARK: - Teach & replay
+
+private struct TeachBar: View {
+    var controller: ArmController
+    let accent: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button { controller.recordPose() } label: {
+                Label("Record", systemImage: "plus.circle.fill")
+            }
+            Button { controller.replay() } label: {
+                Label("Play", systemImage: "play.fill")
+            }
+            .disabled(controller.recordedPoseCount == 0)
+            Button { controller.clearRecording() } label: {
+                Image(systemName: "trash")
+            }
+            .disabled(controller.recordedPoseCount == 0)
+
+            Text("\(controller.recordedPoseCount) pose\(controller.recordedPoseCount == 1 ? "" : "s")")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .font(.callout.weight(.medium))
+        .tint(accent)
+        .buttonStyle(.borderless)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().stroke(.separator, lineWidth: 1))
+        .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
+    }
+}
+
+// MARK: - Camera presets
+
+private struct CameraPresetsBar: View {
+    var onSelect: (CameraRig.Preset) -> Void
+
+    private let presets: [(CameraRig.Preset, String, String)] = [
+        (.orbit, "Orbit", "arrow.clockwise"),
+        (.top, "Top", "arrow.down.to.line"),
+        (.front, "Front", "square"),
+        (.side, "Side", "square.righthalf.filled"),
+        (.gripper, "Gripper", "camera.viewfinder"),
+    ]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(presets, id: \.1) { preset, name, icon in
+                Button { onSelect(preset) } label: {
+                    Image(systemName: icon).help("\(name) view")
+                        .frame(width: 26, height: 22)
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().stroke(.separator, lineWidth: 1))
+        .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
+    }
+}
+
+// MARK: - Physics / settings (collapsible)
+
+private struct SettingsPanel: View {
+    let scene: SandboxScene
+    let audio: AudioManager
+    @Binding var environment: EnvironmentPreset
+    let accent: Color
+
+    @State private var expanded = false
+    @State private var gravity: Double = 9.81
+    @State private var friction: Double = 0.6
+    @State private var soundOn = true
+    @State private var reachOn = false
+    @State private var trailOn = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                withAnimation(.snappy) { expanded.toggle() }
+            } label: {
+                Label("Settings", systemImage: expanded ? "chevron.down" : "slider.horizontal.3")
+                    .font(.callout.weight(.medium))
+            }
+            .buttonStyle(.borderless)
+
+            if expanded {
+                // Phase 7: lighting/environment preset.
+                Picker("Environment", selection: $environment) {
+                    ForEach(EnvironmentPreset.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.menu)
+
+                Toggle("Reach volume", isOn: $reachOn)
+                    .onChange(of: reachOn) { _, v in scene.setReachVisible(v) }
+                Toggle("Motion trail", isOn: $trailOn)
+                    .onChange(of: trailOn) { _, v in scene.setTrailEnabled(v) }
+                Toggle("Sound", isOn: $soundOn)
+                    .onChange(of: soundOn) { _, v in audio.isEnabled = v }
+
+                labeledSlider("Gravity", value: $gravity, range: 0...20, unit: "m/s²") {
+                    scene.setGravity(Float(gravity))
+                }
+                labeledSlider("Friction", value: $friction, range: 0...1.5, unit: "") {
+                    scene.setFriction(Float(friction))
+                }
+            }
+        }
+        .tint(accent)
+        .padding(12)
+        .frame(width: expanded ? 210 : nil, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.separator, lineWidth: 1))
+        .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
+    }
+
+    private func labeledSlider(
+        _ title: String, value: Binding<Double>, range: ClosedRange<Double>,
+        unit: String, onChange: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(title).font(.caption)
+                Spacer()
+                Text("\(value.wrappedValue, specifier: "%.1f")\(unit)")
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            Slider(value: value, in: range).onChange(of: value.wrappedValue) { _, _ in onChange() }
         }
     }
 }

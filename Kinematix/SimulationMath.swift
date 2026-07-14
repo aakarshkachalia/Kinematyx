@@ -76,6 +76,26 @@ extension ModelEntity {
     ///   * `orientation` rotates the local Y axis to point along `(b - a)`.
     ///     `simd_quatf(from:to:)` finds the shortest rotation between two unit
     ///     vectors, which is exactly what we want.
+    /// Positions and orients a FIXED-length cylinder so it spans from `a` to `b`,
+    /// WITHOUT scaling it. The caller must have built the cylinder with a height
+    /// equal to `|b - a|` already. We avoid scaling because non-uniform scale
+    /// distorts cylinder/capsule collision shapes (RealityKit only supports
+    /// non-uniform scale on box/mesh colliders), and our link lengths are
+    /// constant anyway (the distance between two joint origins is √(a²+d²)).
+    func alignBetween(_ a: SIMD3<Float>, _ b: SIMD3<Float>) {
+        position = (a + b) / 2
+        let delta = b - a
+        let length = simd_length(delta)
+        guard length > 1e-6 else { return }
+        let direction = delta / length
+        let up = SIMD3<Float>(0, 1, 0)
+        if simd_dot(up, direction) < -0.9999 {
+            orientation = simd_quatf(angle: .pi, axis: SIMD3<Float>(1, 0, 0))
+        } else {
+            orientation = simd_quatf(from: up, to: direction)
+        }
+    }
+
     func stretchBetween(_ a: SIMD3<Float>, _ b: SIMD3<Float>) {
         let delta = b - a
         let length = simd_length(delta)

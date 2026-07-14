@@ -10,11 +10,25 @@ import simd
 
 /// A serial (chain) robot arm: an ordered list of joints from base to tool.
 public struct RobotArm: Sendable {
+    /// Display name (e.g. "UR5").
+    public let name: String
     /// The joints, ordered base → end-effector. `joints[0]` is the base joint.
     public let joints: [Joint]
+    /// Mass of each link in kilograms (one per joint), for torque estimation.
+    public let linkMasses: [Double]
+    /// Published maximum torque of each joint's motor in N·m, for the warning.
+    public let jointTorqueLimits: [Double]
 
-    public init(joints: [Joint]) {
+    public init(
+        name: String = "Arm",
+        joints: [Joint],
+        linkMasses: [Double] = [],
+        jointTorqueLimits: [Double] = []
+    ) {
+        self.name = name
         self.joints = joints
+        self.linkMasses = linkMasses
+        self.jointTorqueLimits = jointTorqueLimits
     }
 
     /// Number of degrees of freedom (one per revolute joint).
@@ -129,26 +143,62 @@ public extension RobotArm {
     /// ------------
     /// Every UR5 joint can rotate ±360° (±2π radians), so we use ±2π for each.
     static let ur5: RobotArm = {
-        let twoPi = 2 * Double.pi
-
-        // Build each joint from one DH row + the ±2π limit.
-        func makeJoint(alpha: Double, a: Double, d: Double) -> Joint {
-            Joint(
-                dh: DHParameter(alpha: alpha, a: a, d: d),
-                minAngle: -twoPi,
-                maxAngle: twoPi
-            )
-        }
-
         let halfPi = Double.pi / 2
-
-        return RobotArm(joints: [
-            makeJoint(alpha:  halfPi, a:  0,        d: 0.089159),
-            makeJoint(alpha:  0,      a: -0.425,    d: 0),
-            makeJoint(alpha:  0,      a: -0.39225,  d: 0),
-            makeJoint(alpha:  halfPi, a:  0,        d: 0.10915),
-            makeJoint(alpha: -halfPi, a:  0,        d: 0.09465),
-            makeJoint(alpha:  0,      a:  0,        d: 0.0823),
-        ])
+        return RobotArm(
+            name: "UR5",
+            joints: [
+                makeRevolute(alpha:  halfPi, a:  0,        d: 0.089159),
+                makeRevolute(alpha:  0,      a: -0.425,    d: 0),
+                makeRevolute(alpha:  0,      a: -0.39225,  d: 0),
+                makeRevolute(alpha:  halfPi, a:  0,        d: 0.10915),
+                makeRevolute(alpha: -halfPi, a:  0,        d: 0.09465),
+                makeRevolute(alpha:  0,      a:  0,        d: 0.0823),
+            ],
+            // Published UR5 link masses (kg).
+            linkMasses: [3.7, 8.393, 2.275, 1.219, 1.219, 0.1879],
+            // Published UR5 joint torque limits (N·m): 150 for the three big
+            // base joints, 28 for the three wrist joints.
+            jointTorqueLimits: [150, 150, 150, 28, 28, 28]
+        )
     }()
+
+    /// A Universal Robots **UR3**: same family, smaller reach (~0.5 m). DH
+    /// parameters from Universal Robots' published table (see `ur5` for the URL).
+    ///
+    ///   Joint |   a (m)    |   d (m)   |  α (rad)
+    ///   ------+------------+-----------+---------
+    ///     1   |  0         | 0.1519    |  +π/2
+    ///     2   | -0.24365   | 0         |   0
+    ///     3   | -0.21325   | 0         |   0
+    ///     4   |  0         | 0.11235   |  +π/2
+    ///     5   |  0         | 0.08535   |  -π/2
+    ///     6   |  0         | 0.0819    |   0
+    static let ur3: RobotArm = {
+        let halfPi = Double.pi / 2
+        return RobotArm(
+            name: "UR3",
+            joints: [
+                makeRevolute(alpha:  halfPi, a:  0,        d: 0.1519),
+                makeRevolute(alpha:  0,      a: -0.24365,  d: 0),
+                makeRevolute(alpha:  0,      a: -0.21325,  d: 0),
+                makeRevolute(alpha:  halfPi, a:  0,        d: 0.11235),
+                makeRevolute(alpha: -halfPi, a:  0,        d: 0.08535),
+                makeRevolute(alpha:  0,      a:  0,        d: 0.0819),
+            ],
+            // Approximate published UR3 link masses (kg).
+            linkMasses: [2.0, 3.42, 1.26, 0.8, 0.8, 0.35],
+            // Approximate UR3 joint torque limits (N·m): 56 for base joints,
+            // 12 for the wrist joints.
+            jointTorqueLimits: [56, 56, 28, 12, 12, 12]
+        )
+    }()
+
+    /// A revolute joint with the standard UR ±360° limit.
+    private static func makeRevolute(alpha: Double, a: Double, d: Double) -> Joint {
+        let twoPi = 2 * Double.pi
+        return Joint(dh: DHParameter(alpha: alpha, a: a, d: d), minAngle: -twoPi, maxAngle: twoPi)
+    }
+
+    /// All arm profiles available for selection, in menu order.
+    static let allProfiles: [RobotArm] = [.ur5, .ur3]
 }

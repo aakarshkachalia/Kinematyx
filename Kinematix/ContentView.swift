@@ -8,6 +8,8 @@
 //
 
 import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
 import RobotArmKit
 
 /// Shared visual theme. One accent color, everything else neutral.
@@ -23,11 +25,12 @@ struct ContentView: View {
     @State private var controller = ArmController()
     @State private var scene = SandboxScene()
     @State private var challenges = ChallengeManager()
+    @State private var drawStore = DrawnShapeStore()
 
     var body: some View {
         HStack(spacing: 0) {
             RobotViewport(model: model, rig: rig, controller: controller,
-                          scene: scene, challenges: challenges)
+                          scene: scene, challenges: challenges, drawStore: drawStore)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             ControlPanel(model: model, controller: controller,

@@ -64,6 +64,30 @@ struct InverseKinematicsTests {
         #expect(arm.isWithinLimits(result.jointAngles))
     }
 
+    // MARK: Approach-direction IK points the tool down
+
+    /// With a downward approach axis requested, the solution's tool frame should
+    /// both reach the target AND have its approach axis (+Z) pointing down.
+    @Test
+    func solvesWithDownwardApproach() {
+        let arm = RobotArm.ur5
+        // A reachable point in front of and below the shoulder.
+        let target = SIMD3<Double>(0.35, 0.1, 0.2)
+        let down = SIMD3<Double>(0, 0, -1)   // base −Z is straight down
+
+        let result = arm.inverseKinematics(targetPosition: target, approachAxis: down)
+        #expect(result.reached)
+
+        let frames = arm.forwardKinematics(jointAngles: result.jointAngles)
+        let tool = frames.last!
+        // Position close to target.
+        let pos = SIMD3<Double>(tool.columns.3.x, tool.columns.3.y, tool.columns.3.z)
+        #expect(simd_length(pos - target) < 5e-3)
+        // Approach axis (tool +Z) aligned with down, within ~6°.
+        let approach = simd_normalize(SIMD3<Double>(tool.columns.2.x, tool.columns.2.y, tool.columns.2.z))
+        #expect(simd_dot(approach, down) > cos(6 * .pi / 180))
+    }
+
     // MARK: Unreachable target fails gracefully
 
     @Test
