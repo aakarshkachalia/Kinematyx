@@ -19,9 +19,13 @@ let package = Package(
     name: "RobotArmKit",
     // Platforms are listed so the package can be reused by an iOS app later.
     // These are only *minimums*; the macOS app can deploy to a newer OS.
+    // Must cover every platform the app target supports; otherwise, building for
+    // a platform the package doesn't declare (e.g. visionOS) fails with
+    // "Missing package product 'RobotArmKit'".
     platforms: [
         .macOS(.v13),
         .iOS(.v16),
+        .visionOS(.v1),
     ],
     products: [
         // A single library other targets (the Kinematix app) can import.

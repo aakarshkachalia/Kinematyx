@@ -637,6 +637,52 @@ final class SandboxScene {
         return nil
     }
 
+    /// The dropped object currently sitting in the gripper's jaws, if any —
+    /// the nearest one to the point midway between the fingers, within reach.
+    /// Distance-based (not two exact raycasts) so a slightly-off approach still
+    /// grabs instead of shoving the object.
+    func graspCandidate() -> ModelEntity? {
+        let mid = (leftFinger.position(relativeTo: nil) + rightFinger.position(relativeTo: nil)) / 2
+        let reach = fingerOpenX * armScale + 0.06   // open half-span + margin
+        var best: ModelEntity?
+        var bestDistance = Float.greatestFiniteMagnitude
+        for object in objectsRoot.children.compactMap({ $0 as? ModelEntity }) {
+            // Measure to the VISUAL center, not the entity origin: a user-drawn
+            // prism's mesh can be offset from its origin, so origin-distance would
+            // miss it even when the fingers straddle the visible shape.
+            let center = object.visualBounds(relativeTo: nil).center
+            let distance = simd_length(center - mid)
+            if distance < bestDistance { bestDistance = distance; best = object }
+        }
+        return bestDistance <= reach ? best : nil
+    }
+
+    /// World-space center of an object's visible geometry. For primitives this is
+    /// the entity origin, but a user-drawn prism's mesh is offset from its origin,
+    /// so the gripper must aim here to land centered on the shape it can see.
+    func graspCenter(of object: ModelEntity) -> SIMD3<Float> {
+        object.visualBounds(relativeTo: nil).center
+    }
+
+    /// Freezes (kinematic) or unfreezes (dynamic) a dropped object IN PLACE,
+    /// without reparenting it. Used to stop the gripper's descent from knocking an
+    /// object away before it can close on it; `grab`/`release` own the held state.
+    func setFrozen(_ object: ModelEntity, _ frozen: Bool) {
+        guard var body = object.components[PhysicsBodyComponent.self] else { return }
+        body.mode = frozen ? .kinematic : .dynamic
+        object.components.set(body)
+    }
+
+    /// Finger opening (1 = open, 0 = closed) at which the fingers just touch the
+    /// object's sides, so we close ONTO it instead of clamping through it.
+    func gripOpening(for object: ModelEntity) -> Float {
+        let halfWidth = object.visualBounds(relativeTo: object).extents.x / 2
+        let worldHalfGap = halfWidth + 0.006                 // a hair of clearance
+        let localX = worldHalfGap / armScale                 // fingers live in armRoot's scaled space
+        let t = (localX - fingerClosedX) / (fingerOpenX - fingerClosedX)
+        return min(max(t, 0), 1)
+    }
+
     /// First DROPPED OBJECT a ray hits (skipping the arm's own colliders).
     private func firstObjectHit(
         _ scene: RealityKit.Scene, from origin: SIMD3<Float>,
@@ -853,10 +899,15 @@ final class SandboxScene {
     /// Spawns a user-drawn extruded shape as a dynamic physics object, dropped
     /// from just above the surface. Reusable — every drag spawns a fresh copy.
     func dropDrawnObject(_ shape: DrawnShape, onto groundPoint: SIMD3<Float>) {
-        let (mesh, corners) = DrawnGeometry.extrude(shape.points, size: 0.14, depth: 0.06)
+        // Bigger than before, but still within the gripper's open span so it can
+        // be picked up.
+        let (mesh, corners) = DrawnGeometry.extrude(shape.points, size: 0.2, depth: 0.1)
         var material = PhysicallyBasedMaterial()
         material.baseColor = .init(tint: NSColor(hue: CGFloat(shape.hue), saturation: 0.6, brightness: 0.85, alpha: 1))
         material.roughness = 0.5
+        // Render both sides so the extruded caps always fill solid, regardless of
+        // the drawing's winding direction.
+        material.faceCulling = .none
 
         let entity = ModelEntity(mesh: mesh, materials: [material])
         entity.name = "object.drawn"

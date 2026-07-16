@@ -54,7 +54,7 @@ struct ObjectShelf: View {
                         VStack(spacing: 4) {
                             Image(systemName: "pencil.and.outline").font(.title2)
                                 .frame(width: 40, height: 40)
-                            Text("Draw").font(.caption2).foregroundStyle(.secondary)
+                            Text("Draw").font(.caption.weight(.semibold)).foregroundStyle(.primary)
                         }
                     }
                     .buttonStyle(.borderless)
@@ -62,15 +62,17 @@ struct ObjectShelf: View {
 
                 Divider().frame(height: 40)
 
-                Button(role: .destructive, action: onClear) {
-                    Label("Clear", systemImage: "trash").font(.callout.weight(.medium))
+                Button(action: onClear) {
+                    Label("Clear", systemImage: "trash")
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(.red)
                 }
                 .buttonStyle(.borderless)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(.separator, lineWidth: 1))
         .shadow(radius: 8, y: 2)
         .animation(.snappy, value: mode)
@@ -105,7 +107,9 @@ private struct ShelfItem<Glyph: View>: View {
     var body: some View {
         VStack(spacing: 4) {
             glyph.frame(width: 40, height: 40)
-            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
         }
         .padding(6)
         .contentShape(Rectangle())

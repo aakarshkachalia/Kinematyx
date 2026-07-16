@@ -150,14 +150,15 @@ private struct StatusBadge: View {
                 .fill(dotColor)
                 .frame(width: 8, height: 8)
             Text(status.label)
-                .font(.callout.weight(.medium))
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.primary)
                 .contentTransition(.numericText())
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(.regularMaterial, in: Capsule())
+        .background(.thickMaterial, in: Capsule())
         .overlay(Capsule().stroke(.separator, lineWidth: 1))
-        .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
+        .shadow(color: .black.opacity(0.18), radius: 5, y: 1)
     }
 
     private var dotColor: Color {
@@ -190,17 +191,17 @@ private struct TeachBar: View {
             .disabled(controller.recordedPoseCount == 0)
 
             Text("\(controller.recordedPoseCount) pose\(controller.recordedPoseCount == 1 ? "" : "s")")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .font(.caption.monospacedDigit().weight(.medium))
+                .foregroundStyle(.primary)
         }
-        .font(.callout.weight(.medium))
+        .font(.callout.weight(.semibold))
         .tint(accent)
         .buttonStyle(.borderless)
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(.regularMaterial, in: Capsule())
+        .background(.thickMaterial, in: Capsule())
         .overlay(Capsule().stroke(.separator, lineWidth: 1))
-        .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
+        .shadow(color: .black.opacity(0.18), radius: 5, y: 1)
     }
 }
 
@@ -218,20 +219,26 @@ private struct CameraPresetsBar: View {
     ]
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             ForEach(presets, id: \.1) { preset, name, icon in
                 Button { onSelect(preset) } label: {
-                    Image(systemName: icon).help("\(name) view")
-                        .frame(width: 26, height: 22)
+                    VStack(spacing: 2) {
+                        Image(systemName: icon).font(.body.weight(.semibold))
+                        Text(name).font(.caption2.weight(.medium))
+                    }
+                    .foregroundStyle(.primary)
+                    .frame(width: 46, height: 40)
+                    .contentShape(Rectangle())
+                    .help("\(name) view")
                 }
                 .buttonStyle(.borderless)
             }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(.regularMaterial, in: Capsule())
-        .overlay(Capsule().stroke(.separator, lineWidth: 1))
-        .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
+        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(.separator, lineWidth: 1))
+        .shadow(color: .black.opacity(0.18), radius: 5, y: 1)
     }
 }
 

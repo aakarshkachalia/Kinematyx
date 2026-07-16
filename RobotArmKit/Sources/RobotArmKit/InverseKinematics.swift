@@ -47,6 +47,7 @@ public extension RobotArm {
     func inverseKinematics(
         targetPosition: SIMD3<Double>,
         approachAxis: SIMD3<Double>? = nil,
+        targetOrientation: simd_double3x3? = nil,
         initialGuess: [Double]? = nil,
         maxIterations: Int = 400,
         tolerance: Double = 1e-3
@@ -60,6 +61,9 @@ public extension RobotArm {
         // suffers; too low and the tool won't point where we asked.
         let orientationWeight = 0.5
         let desiredApproach = approachAxis.map { simd_normalize($0) }
+        // Any orientation target (a full frame, or just the approach axis) adds
+        // the 3 angular rows to the Jacobian.
+        let useOrientation = (targetOrientation != nil) || (desiredApproach != nil)
 
         var bestAngles = theta
         var bestError = Double.greatestFiniteMagnitude
@@ -70,12 +74,20 @@ public extension RobotArm {
             let posError = targetPosition - toolPos
             let distance = simd_length(posError)
 
-            // Orientation error (if requested): the small rotation that would
-            // bring the current approach axis onto the desired one is approximated
-            // by their cross product (axis * sin(angle)).
+            // Orientation error, as a base-frame rotation vector (axis · sin θ).
             var rotError = SIMD3<Double>(0, 0, 0)
             var orientationAligned = true
-            if let desired = desiredApproach {
+            if let target = targetOrientation {
+                // FULL orientation: the small rotation from the current tool
+                // frame to the target. R_err = R_target · R_currentᵀ; the vee of
+                // its skew-symmetric part is that rotation vector. This pins all
+                // three rotational DOF — including the wrist ROLL, so the gripper
+                // fingers line up with the object instead of hitting a corner.
+                let current = rotation(of: frames.last!)
+                rotError = Self.rotationVector(target * current.transpose)
+                orientationAligned = simd_length(rotError) < sin(4 * .pi / 180)
+            } else if let desired = desiredApproach {
+                // APPROACH ONLY: align the tool's +Z with `desired`; roll is free.
                 let current = zAxis(of: frames.last!)
                 rotError = simd_cross(current, desired)
                 orientationAligned = simd_dot(current, desired) > cos(6 * .pi / 180)
@@ -101,7 +113,7 @@ public extension RobotArm {
                 let axis = zAxis(of: frame)
                 let origin = position(of: frame)
                 let jv = simd_cross(axis, toolPos - origin)
-                if desiredApproach != nil {
+                if useOrientation {
                     let jw = axis * orientationWeight
                     columns.append([jv.x, jv.y, jv.z, jw.x, jw.y, jw.z])
                 } else {
@@ -110,7 +122,7 @@ public extension RobotArm {
             }
 
             // Stacked error vector (weighted to match the Jacobian's angular rows).
-            let error: [Double] = desiredApproach != nil
+            let error: [Double] = useOrientation
                 ? [posError.x, posError.y, posError.z,
                    rotError.x * orientationWeight, rotError.y * orientationWeight, rotError.z * orientationWeight]
                 : [posError.x, posError.y, posError.z]
@@ -163,6 +175,25 @@ public extension RobotArm {
 
     private func zAxis(of m: simd_double4x4) -> SIMD3<Double> {
         simd_normalize(SIMD3<Double>(m.columns.2.x, m.columns.2.y, m.columns.2.z))
+    }
+
+    /// The 3×3 rotation part of a homogeneous transform.
+    private func rotation(of m: simd_double4x4) -> simd_double3x3 {
+        simd_double3x3(columns: (
+            SIMD3<Double>(m.columns.0.x, m.columns.0.y, m.columns.0.z),
+            SIMD3<Double>(m.columns.1.x, m.columns.1.y, m.columns.1.z),
+            SIMD3<Double>(m.columns.2.x, m.columns.2.y, m.columns.2.z)
+        ))
+    }
+
+    /// Extracts the rotation vector (axis · sin θ) from a small rotation matrix,
+    /// i.e. the "vee" of its skew-symmetric part. `R[row][col] = R.columns.col[row]`.
+    static func rotationVector(_ r: simd_double3x3) -> SIMD3<Double> {
+        SIMD3<Double>(
+            0.5 * (r.columns.1[2] - r.columns.2[1]),
+            0.5 * (r.columns.2[0] - r.columns.0[2]),
+            0.5 * (r.columns.0[1] - r.columns.1[0])
+        )
     }
 
     /// Solves the dense linear system `A · x = b` by Gaussian elimination with

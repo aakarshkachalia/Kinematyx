@@ -88,6 +88,30 @@ struct InverseKinematicsTests {
         #expect(simd_dot(approach, down) > cos(6 * .pi / 180))
     }
 
+    // MARK: Full-orientation IK matches a target frame
+
+    /// With a full target orientation, the solution's tool frame should match it
+    /// (all three axes), not just the approach direction.
+    @Test
+    func solvesFullOrientation() {
+        let arm = RobotArm.ur5
+        let target = SIMD3<Double>(0.3, 0.15, 0.25)
+        // Tool +Z straight down, +X along base +X, +Y = Z × X.
+        let x = SIMD3<Double>(1, 0, 0)
+        let z = SIMD3<Double>(0, 0, -1)
+        let y = simd_cross(z, x)
+        let orientation = simd_double3x3(columns: (x, y, z))
+
+        let result = arm.inverseKinematics(targetPosition: target, targetOrientation: orientation)
+        #expect(result.reached)
+
+        let tool = arm.forwardKinematics(jointAngles: result.jointAngles).last!
+        let colX = simd_normalize(SIMD3<Double>(tool.columns.0.x, tool.columns.0.y, tool.columns.0.z))
+        let colZ = simd_normalize(SIMD3<Double>(tool.columns.2.x, tool.columns.2.y, tool.columns.2.z))
+        #expect(simd_dot(colX, x) > cos(5 * .pi / 180))   // finger axis aligned
+        #expect(simd_dot(colZ, z) > cos(5 * .pi / 180))   // approach axis down
+    }
+
     // MARK: Unreachable target fails gracefully
 
     @Test

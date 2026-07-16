@@ -75,6 +75,10 @@ final class ArmController {
 
     private var heldObject: ModelEntity?
     private var heldKind: ObjectKind?
+    /// Object frozen in place while the gripper descends onto it, so the descent
+    /// can't shove it out of reach before we close. Cleared when grabbed/aborted.
+    private var pendingGrasp: ModelEntity?
+    private var gripperCompletion: (() -> Void)?
     private var toastTask: Task<Void, Never>?
 
     // Teach & replay: an ordered list of recorded joint poses.
@@ -132,6 +136,9 @@ final class ArmController {
             gripperAnimating = false
             isGripperOpen = gripperTo >= 0.5
             onGripperSettled()
+            let completion = gripperCompletion
+            gripperCompletion = nil
+            completion?()
         }
     }
 
@@ -140,36 +147,43 @@ final class ArmController {
     /// Toggles the gripper (side-panel button / G key).
     func toggleGripper() { setGripper(closed: isGripperOpen) }
     /// Close the gripper (may grasp on settle).
-    func closeGripper() { setGripper(closed: true) }
+    func closeGripper(_ completion: (() -> Void)? = nil) { setGripper(closed: true, completion: completion) }
     /// Open the gripper (releases anything held on settle).
-    func openGripper() { setGripper(closed: false) }
+    func openGripper(_ completion: (() -> Void)? = nil) { setGripper(closed: false, completion: completion) }
 
-    private func setGripper(closed: Bool) {
-        guard !gripperAnimating else { return }
-        let target: Float = closed ? 0 : 1
-        guard abs(target - gripperOpening) > 0.001 else { return }   // already there
+    private func setGripper(closed: Bool, completion: (() -> Void)? = nil) {
+        guard !gripperAnimating else { completion?(); return }
+        var target: Float = closed ? 0 : 1
+
+        // Grab the instant we START to close: freeze the object (kinematic) BEFORE
+        // the fingers move, so closing can never shove a dynamic object off the
+        // table. Then stop the fingers at the object's width instead of overclosing.
+        if closed, heldObject == nil, let object = scene.graspCandidate() {
+            performGrab(object)
+            target = scene.gripOpening(for: object)
+        }
+
+        guard abs(target - gripperOpening) > 0.001 else { completion?(); return }
         audio.playClick()
+        gripperCompletion = completion
         gripperFrom = gripperOpening
         gripperTo = target
         gripperElapsed = 0
         gripperAnimating = true
     }
 
+    private func performGrab(_ object: ModelEntity) {
+        scene.grab(object)
+        heldObject = object
+        pendingGrasp = nil   // it's held now, not merely frozen-in-place
+        heldKind = ObjectKind(rawValue: object.name.replacingOccurrences(of: "object.", with: "")) ?? .cube
+        heldPayloadMass = heldKind?.mass ?? 0
+        status = .holding(heldKind ?? .cube)
+    }
+
     private func onGripperSettled() {
-        if !isGripperOpen {
-            // Just finished closing: grasp only if both fingers touched an object.
-            guard heldObject == nil else { return }
-            if let object = scene.attemptGrasp() {
-                scene.grab(object)
-                heldObject = object
-                heldKind = ObjectKind(rawValue: object.name.replacingOccurrences(of: "object.", with: "")) ?? .cube
-                heldPayloadMass = heldKind?.mass ?? 0
-                status = .holding(heldKind!)
-            } else {
-                flashToast("Nothing to grasp")
-            }
-        } else {
-            // Just finished opening: release whatever we held (it falls per Phase 1).
+        if isGripperOpen {
+            // Finished opening: release whatever we held (it falls per Phase 1).
             if let held = heldObject {
                 scene.release(held)
                 heldObject = nil
@@ -177,7 +191,19 @@ final class ArmController {
                 heldPayloadMass = 0
                 status = .idle
             }
+        } else if heldObject == nil {
+            // Closed on empty air (the grab, if any, happened at close-start).
+            flashToast("Nothing to grasp")
+            abortPendingGrasp()
         }
+    }
+
+    /// Un-freezes an object we were about to grasp but didn't (target unreachable,
+    /// or the close found nothing), so it behaves as a dynamic body again.
+    private func abortPendingGrasp() {
+        guard let object = pendingGrasp else { return }
+        scene.setFrozen(object, false)
+        pendingGrasp = nil
     }
 
     // MARK: - Click to pick / place (staged: above → down → grip)
@@ -185,50 +211,84 @@ final class ArmController {
     /// Clearance the gripper hovers at directly above the target before descending.
     private let approachHeight: Float = 0.18
 
-    /// A click runs a real pick/place motion: move DIRECTLY ABOVE the target,
-    /// descend straight down onto it, then close (to grab) or open (to release)
-    /// the gripper — mirroring how a real arm approaches from the top.
+    /// A click runs a real motion:
+    ///  • Click an OBJECT (empty-handed): open the gripper, move directly above
+    ///    it with the fingers ALIGNED to the object, descend, then close to grab.
+    ///  • Click anywhere else (empty-handed): move the gripper there.
+    ///  • Click while HOLDING: move above the spot, descend, open to release, then
+    ///    raise the arm back up (leaving the object behind).
     func handleClick(point: CGPoint, viewSize: CGSize, rig: CameraRig) {
         guard !isAnimating, !gripperAnimating else { return }
         guard let (origin, direction) = rig.ray(viewSize: viewSize, point: point) else { return }
         let hit = scene.pick(origin: origin, direction: direction)
 
         if isHolding {
-            // Place: descend over the clicked surface, then open to drop.
             let surface: SIMD3<Float>
             switch hit {
             case .ground(let p), .object(_, let p): surface = p
             case .none: return
             }
-            approach(target: surface + SIMD3<Float>(0, 0.06, 0), status: .movingToDrop) {
-                [weak self] in self?.openGripper()
+            approach(target: surface + SIMD3<Float>(0, 0.06, 0), orientation: nil, status: .movingToDrop) {
+                [weak self] above in
+                guard let self else { return }
+                // Release FIRST, then lift the arm away from the dropped object.
+                self.openGripper { [weak self] in self?.raiseTo(above) }
             }
-        } else {
-            // Pick: only clicking an object starts a pick.
-            guard case let .object(object, _) = hit else { return }
-            let center = object.position(relativeTo: nil) + SIMD3<Float>(0, 0.02, 0)
-            approach(target: center, status: .movingToObject) {
-                [weak self] in self?.closeGripper()
+            return
+        }
+
+        switch hit {
+        case .object(let object, _):
+            openGripper()   // ready the gripper the moment you pick an object
+            // Freeze the object in place so the descending gripper can't knock it
+            // away before closing, and aim at its VISUAL center (drawn prisms are
+            // offset from their entity origin).
+            scene.setFrozen(object, true)
+            pendingGrasp = object
+            let target = scene.graspCenter(of: object) + SIMD3<Float>(0, 0.02, 0)
+            approach(target: target, orientation: object.orientation(relativeTo: nil), status: .movingToObject) {
+                [weak self] _ in self?.closeGripper()
             }
+        case .ground(let p):
+            // Click anywhere → just take the gripper there.
+            approach(target: p + SIMD3<Float>(0, 0.10, 0), orientation: nil, status: .movingToObject) {
+                [weak self] _ in self?.status = self?.heldKind.map { .holding($0) } ?? .idle
+            }
+        case .none:
+            return
         }
     }
 
     /// Two-stage move: to a hover point directly above `target`, then straight
-    /// down to `target`; runs `onArrival` (grip/release) once landed. Fails
-    /// cleanly if either stage is unreachable.
-    private func approach(target: SIMD3<Float>, status newStatus: ArmStatus, onArrival: @escaping () -> Void) {
+    /// down to it. `orientation` (if given) aligns the whole tool frame — used
+    /// for grasps so the fingers line up with the object. `onArrival` receives
+    /// the hover point so a caller can raise back up to it.
+    private func approach(
+        target: SIMD3<Float>, orientation: simd_quatf?,
+        status newStatus: ArmStatus, onArrival: @escaping (SIMD3<Float>) -> Void
+    ) {
         let above = target + SIMD3<Float>(0, approachHeight, 0)
-        guard let solutionAbove = solve(worldTarget: above),
-              let solutionAt = solve(worldTarget: target) else {
+        let solveFor: (SIMD3<Float>) -> [Double]? = { [weak self] worldPoint in
+            guard let self else { return nil }
+            if let orientation { return self.solveAligned(worldTarget: worldPoint, objectOrientation: orientation) }
+            return self.solve(worldTarget: worldPoint)
+        }
+        guard let solutionAbove = solveFor(above), let solutionAt = solveFor(target) else {
             status = .unreachable
             flashToast("Target out of reach")
+            abortPendingGrasp()   // let a frozen would-be target fall/behave again
             return
         }
         status = newStatus
         beginMove(to: solutionAbove) { [weak self] in
-            guard let self else { return }
-            self.beginMove(to: solutionAt) { onArrival() }
+            self?.beginMove(to: solutionAt) { onArrival(above) }
         }
+    }
+
+    /// Moves the arm up to a (previously computed) hover point after a release.
+    private func raiseTo(_ worldTarget: SIMD3<Float>) {
+        guard let solution = solve(worldTarget: worldTarget) else { status = .idle; return }
+        beginMove(to: solution) { [weak self] in self?.status = .idle }
     }
 
     // MARK: - Teach & replay
@@ -282,11 +342,37 @@ final class ArmController {
 
     private func solve(worldTarget: SIMD3<Float>) -> [Double]? {
         let robotTarget = scene.worldToRobot(worldTarget)
-        // Always approach from directly above: the tool's approach axis (+Z)
-        // points along the base frame's −Z, which is straight down.
+        // Approach straight down (tool +Z = base −Z); wrist roll is left free.
         let result = arm.inverseKinematics(
             targetPosition: SIMD3<Double>(robotTarget),
             approachAxis: SIMD3<Double>(0, 0, -1),
+            initialGuess: model.jointAngles
+        )
+        return result.reached ? result.jointAngles : nil
+    }
+
+    /// Like `solve`, but pins the FULL tool orientation so the gripper fingers
+    /// line up with the object (rather than hitting it at an angle). The finger
+    /// axis (tool +X) is aligned with the object's horizontal X direction, the
+    /// approach (+Z) points straight down, and Y completes the right-handed frame.
+    private func solveAligned(worldTarget: SIMD3<Float>, objectOrientation: simd_quatf) -> [Double]? {
+        let robotTarget = scene.worldToRobot(worldTarget)
+
+        // The object's local X in the arm's base frame, flattened to horizontal.
+        let objectXWorld = objectOrientation.act(SIMD3<Float>(1, 0, 0))
+        let objectXRobot = CoordinateSpace.robotToRealityKit.inverse.act(objectXWorld)
+        var x = SIMD3<Double>(Double(objectXRobot.x), Double(objectXRobot.y), 0)
+        if simd_length(x) < 1e-4 { x = SIMD3<Double>(1, 0, 0) }
+        x = simd_normalize(x)
+
+        let z = SIMD3<Double>(0, 0, -1)               // straight down
+        let y = simd_normalize(simd_cross(z, x))
+        x = simd_cross(y, z)                          // re-orthonormalize
+        let orientation = simd_double3x3(columns: (x, y, z))
+
+        let result = arm.inverseKinematics(
+            targetPosition: SIMD3<Double>(robotTarget),
+            targetOrientation: orientation,
             initialGuess: model.jointAngles
         )
         return result.reached ? result.jointAngles : nil
