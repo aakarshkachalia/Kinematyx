@@ -26,15 +26,17 @@ struct ContentView: View {
     @State private var scene = SandboxScene()
     @State private var challenges = ChallengeManager()
     @State private var drawStore = DrawnShapeStore()
+    @State private var assembly = AssemblyController()
 
     var body: some View {
         HStack(spacing: 0) {
             RobotViewport(model: model, rig: rig, controller: controller,
-                          scene: scene, challenges: challenges, drawStore: drawStore)
+                          scene: scene, challenges: challenges, drawStore: drawStore,
+                          assembly: assembly)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             ControlPanel(model: model, controller: controller,
-                         scene: scene, challenges: challenges)
+                         scene: scene, challenges: challenges, assembly: assembly)
                 .frame(width: 320)
         }
         .frame(minWidth: 1040, minHeight: 720)
@@ -49,6 +51,7 @@ private struct ControlPanel: View {
     var controller: ArmController
     var scene: SandboxScene
     var challenges: ChallengeManager
+    var assembly: AssemblyController
 
     @State private var showJointFrames = true
     @State private var showExport = false
@@ -72,6 +75,7 @@ private struct ControlPanel: View {
                 if model.isNearSingularity { singularityBadge }
 
                 endEffectorCard
+                AssemblySection(assembly: assembly)
                 TorqueSection(model: model, controller: controller)
                 DHTableSection(model: model)
                 SequenceSection(controller: controller, showExport: $showExport)
@@ -350,6 +354,143 @@ private struct SequenceSection: View {
         }
         .frame(maxWidth: .infinity).padding(.vertical, 6)
         .background(.background.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+// MARK: - Assembly (Phase 3/4)
+
+private struct AssemblySection: View {
+    var assembly: AssemblyController
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Assembly", systemImage: "car.side.fill")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                if assembly.loaded {
+                    Text("\(assembly.completedCount)/\(assembly.totalSteps)")
+                        .font(.caption.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(assembly.isComplete ? .green : Theme.accent)
+                }
+            }
+
+            if !assembly.loaded {
+                Button { assembly.loadCar() } label: {
+                    Label("Load model car", systemImage: "shippingbox.fill")
+                        .font(.callout.weight(.medium)).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent).tint(Theme.accent)
+                Text("Grab a wheel, line its hub up with an axle, and it snaps on. All four wheels go on before the body.")
+                    .font(.caption2).foregroundStyle(.secondary)
+            } else {
+                ForEach(assembly.stepStates(), id: \.id) { step in
+                    HStack(spacing: 8) {
+                        Image(systemName: icon(step.state))
+                            .foregroundStyle(color(step.state))
+                        Text(step.name)
+                            .font(.caption)
+                            .foregroundStyle(step.state == .blocked ? .secondary : .primary)
+                        Spacer()
+                        if step.state == .inProgress { Text("aligning…").font(.caption2).foregroundStyle(Theme.accent) }
+                    }
+                }
+
+                autoControls
+
+                if let failure = assembly.failureMessage {
+                    Label(failure, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2).foregroundStyle(.orange)
+                }
+
+                if !assembly.metrics.perStep.isEmpty || assembly.metrics.travelMeters > 0 {
+                    metricsView
+                }
+
+                Button { assembly.reset() } label: {
+                    Label("Reset assembly", systemImage: "arrow.counterclockwise")
+                        .font(.callout.weight(.medium)).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                if assembly.isComplete {
+                    Text("Car complete! Real factories time every step like this — a half-second saved per car is thousands of cars a year.")
+                        .font(.caption2).foregroundStyle(.green)
+                }
+            }
+        }
+        .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.cardCorner))
+        .animation(.snappy, value: assembly.completedCount)
+    }
+
+    @ViewBuilder private var autoControls: some View {
+        if assembly.isAutoRunning {
+            HStack(spacing: 8) {
+                Button { assembly.togglePause() } label: {
+                    Label(assembly.isPaused ? "Resume" : "Pause",
+                          systemImage: assembly.isPaused ? "play.fill" : "pause.fill")
+                        .font(.callout.weight(.medium)).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent).tint(Theme.accent)
+                Button(role: .destructive) { assembly.stopAuto() } label: {
+                    Label("Stop", systemImage: "stop.fill").font(.callout.weight(.medium))
+                }
+                .buttonStyle(.bordered)
+            }
+        } else if !assembly.isComplete {
+            HStack(spacing: 8) {
+                Button { assembly.startAuto() } label: {
+                    Label("Auto-assemble", systemImage: "wand.and.stars")
+                        .font(.callout.weight(.medium)).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent).tint(Theme.accent)
+                Button { assembly.stepOne() } label: {
+                    Label("Step", systemImage: "forward.frame").font(.callout.weight(.medium))
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+    }
+
+    private var metricsView: some View {
+        let m = assembly.metrics
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                metric("Build", String(format: "%.1fs", m.totalTime))
+                metric("Travel", String(format: "%.2fm", m.travelMeters))
+                metric("Misses", "\(m.failedSnaps)")
+            }
+            Text("Real factories optimize exactly these numbers — a half-second saved per car is thousands of cars a year.")
+                .font(.caption2).foregroundStyle(.secondary)
+        }
+        .padding(.top, 2)
+    }
+
+    private func metric(_ label: String, _ value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.callout.monospacedDigit().weight(.semibold))
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 6)
+        .background(.background.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func icon(_ s: AssemblyController.StepState) -> String {
+        switch s {
+        case .done:       return "checkmark.circle.fill"
+        case .inProgress: return "dot.circle.fill"
+        case .ready:      return "circle"
+        case .blocked:    return "lock.circle"
+        }
+    }
+    private func color(_ s: AssemblyController.StepState) -> Color {
+        switch s {
+        case .done:       return .green
+        case .inProgress: return Theme.accent
+        case .ready:      return .secondary
+        case .blocked:    return Color.secondary.opacity(0.5)
+        }
     }
 }
 

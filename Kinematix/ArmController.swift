@@ -55,6 +55,20 @@ final class ArmController {
     private(set) var heldPayloadMass: Double = 0
     /// Whether the gripper currently holds an object (for challenge checks).
     var isHolding: Bool { heldObject != nil }
+    /// The entity currently held in the gripper — read by the assembly layer so it
+    /// can track a grasped part's mating feature against its target socket.
+    var heldEntity: ModelEntity? { heldObject }
+
+    /// Transfers the held object OUT of the gripper WITHOUT dropping it, used when
+    /// an assembly snap welds the part into place. Clears the held state and
+    /// returns to idle; it does NOT make the body dynamic (the scene now owns it).
+    func handOffHeldObject() {
+        heldObject = nil
+        heldKind = nil
+        heldPayloadMass = 0
+        pendingGrasp = nil
+        status = .idle
+    }
 
     // Arm joint animation.
     private var isAnimating = false
@@ -376,6 +390,132 @@ final class ArmController {
             initialGuess: model.jointAngles
         )
         return result.reached ? result.jointAngles : nil
+    }
+
+    // MARK: - Programmatic drive (Phase 5 auto-assemble)
+
+    /// A bent, well-conditioned "ready" pose. The home pose (all zeros) is the
+    /// fully-extended boundary SINGULARITY, which makes damped IK converge poorly;
+    /// we send the arm here before scripted work and use it as an IK seed.
+    static let readyPose: [Double] = [0.0, -1.2, 1.4, -1.6, -1.57, 0.0]
+
+    /// Whether the current pose is near a kinematic singularity.
+    var isNearSingularity: Bool { arm.isNearSingularity(jointAngles: model.jointAngles) }
+
+    /// Eases the arm to the ready pose (used before auto-assemble to leave the
+    /// singular home pose).
+    func easeToReady() async { await easeTo(Self.readyPose, status: .movingToObject) }
+
+    /// Solves IK for a full WORLD pose of the tool frame (position + orientation),
+    /// converting into the arm's base frame first. Returns nil if unreachable.
+    ///
+    /// Tries several SEEDS: the current pose first (for continuity during a move),
+    /// then bent, non-singular seeds. Seeding from a singular pose (e.g. home) makes
+    /// the damped solver stall, so falling back to good seeds is what lets the first
+    /// grasp actually solve.
+    func solveWorldPose(_ worldPose: Pose) -> [Double]? {
+        let wp = worldPose.position
+        let robotPos = scene.worldToRobot(SIMD3<Float>(Float(wp.x), Float(wp.y), Float(wp.z)))
+        let robotOrient = scene.worldOrientationToRobot(worldPose.orientation)
+        let target = Pose(
+            position: SIMD3<Double>(Double(robotPos.x), Double(robotPos.y), Double(robotPos.z)),
+            orientation: robotOrient
+        )
+        // Looser than the snap tolerance on purpose: waypoint precision only needs
+        // to get the part close enough for the 15 mm / 15° snap to take over.
+        let seeds: [[Double]] = [
+            model.jointAngles,
+            Self.readyPose,
+            [0.6, -1.0, 1.2, -1.4, -1.57, 0.0],
+            [-0.6, -1.0, 1.2, -1.4, 1.57, 0.0],
+        ]
+        for seed in seeds {
+            let result = arm.inverseKinematics(
+                targetPose: target, initialGuess: seed,
+                tolerance: 4e-3, orientationTolerance: 6 * .pi / 180
+            )
+            if result.reached { return result.jointAngles }
+        }
+        return nil
+    }
+
+    /// The tool frame's current world pose.
+    func toolWorldPose() -> Pose { scene.toolWorldPose() }
+
+    /// Eases the arm to a joint solution, returning when the move finishes.
+    func easeTo(_ target: [Double], status newStatus: ArmStatus? = nil) async {
+        if let newStatus { status = newStatus }
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            beginMove(to: target) { cont.resume() }
+        }
+    }
+
+    /// Snaps the arm directly to a joint solution over one short sub-step (used for
+    /// the fine, straight-line Cartesian insert). No easing curve — the caller
+    /// interpolates the tool POSE and calls this for each small increment.
+    func setJointsImmediate(_ target: [Double]) { model.jointAngles = target }
+
+    /// Plans a COLLISION-FREE joint path to a world tool pose around `obstacles`
+    /// and follows it; if the straight move is already clear (or planning fails)
+    /// it falls back to a single eased move. Returns false only if the goal pose
+    /// is itself unreachable by IK.
+    func planAndMove(toWorldPose pose: Pose, obstacles: [CollisionSphere], status newStatus: ArmStatus? = nil) async -> Bool {
+        guard let goal = solveWorldPose(pose) else { return false }
+        // Plan OFF the main actor (RobotArm/planner are value types) so the render
+        // loop keeps ticking while RRT searches.
+        let armValue = arm
+        let start = model.jointAngles
+        let planner = MotionPlanner(linkRadius: 0.06, maxIterations: 3000)
+        let path = await Task.detached {
+            planner.plan(arm: armValue, from: start, to: goal, obstacles: obstacles)
+        }.value
+
+        if let path, path.count > 2 {
+            await followJointPath(path, status: newStatus)
+        } else {
+            await easeTo(goal, status: newStatus)   // straight move was clear, or no plan found
+        }
+        return true
+    }
+
+    /// Follows a joint-space path as smooth, near-constant-speed motion by
+    /// densifying it and stepping the joints each frame.
+    func followJointPath(_ path: [[Double]], status newStatus: ArmStatus? = nil) async {
+        guard path.count > 1 else { return }
+        if let newStatus { status = newStatus }
+        let seg = 0.05   // radians of joint travel per micro-step
+        var dense: [[Double]] = [path[0]]
+        for k in 1..<path.count {
+            let a = path[k - 1], b = path[k]
+            let n = max(1, Int((Self.jointDistance(a, b) / seg).rounded(.up)))
+            for s in 1...n {
+                let t = Double(s) / Double(n)
+                dense.append((0..<a.count).map { a[$0] + (b[$0] - a[$0]) * t })
+            }
+        }
+        audio.startServo(); servoOn = true
+        for cfg in dense.dropFirst() {
+            if Task.isCancelled { break }
+            model.jointAngles = cfg
+            try? await Task.sleep(for: .milliseconds(16))
+        }
+        audio.stopServo(); servoOn = false
+    }
+
+    private static func jointDistance(_ a: [Double], _ b: [Double]) -> Double {
+        sqrt(zip(a, b).reduce(0) { $0 + ($1.0 - $1.1) * ($1.0 - $1.1) })
+    }
+
+    /// Async gripper close/open for scripted sequences.
+    func closeGripperAsync() async {
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            closeGripper { cont.resume() }
+        }
+    }
+    func openGripperAsync() async {
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            openGripper { cont.resume() }
+        }
     }
 
     private func beginMove(to target: [Double], then arrival: @escaping () -> Void) {

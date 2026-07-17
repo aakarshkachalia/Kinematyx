@@ -70,6 +70,10 @@ final class SandboxScene {
     /// can't try to grasp them and so raycasts classify them as surfaces.
     private let obstaclesRoot = Entity()
 
+    /// Parent for welded assembly parts (the fixed chassis + snapped-on parts).
+    /// Kept out of `objectsRoot` so the fixed base can't itself be grasped.
+    private let assemblyRoot = Entity()
+
     /// The physics simulation lives on this root. Every physics body (floor, arm
     /// colliders, dropped objects) is a descendant of it, which guarantees the
     /// simulation actually runs with gravity — the default scene doesn't always
@@ -117,12 +121,14 @@ final class SandboxScene {
 
         addFloorAndGrid(to: &content)
         addWorkbench()
+        addWorkspaceBoundary()
         addScaleReference()
         addLighting(to: &content)
         addArm(to: &content)
         addCamera(to: &content)
         simulationRoot.addChild(objectsRoot)
         simulationRoot.addChild(obstaclesRoot)
+        simulationRoot.addChild(assemblyRoot)
 
         // One callback per rendered frame drives animation + arm/camera sync.
         frameSubscription = content.subscribe(to: SceneEvents.Update.self) { [weak self] event in
@@ -255,6 +261,35 @@ final class SandboxScene {
                 )
                 simulationRoot.addChild(leg)
             }
+        }
+    }
+
+    // MARK: Workspace boundary (a raised lip so parts can't roll/get knocked off)
+
+    /// A low static rim around the bench top. It gives dropped or bumped objects a
+    /// hard edge to stop against instead of sliding off the table, and reads as a
+    /// real work-cell tray lip.
+    private func addWorkspaceBoundary() {
+        let half: Float = 1.45          // just inside the 3 m bench edge
+        let h: Float = 0.06             // lip height
+        let thick: Float = 0.05
+        let y = benchHeight + h / 2
+        let spans: [(SIMD3<Float>, SIMD3<Float>)] = [
+            (SIMD3(0, y,  half), SIMD3(2 * half + thick, h, thick)),   // far  (+z)
+            (SIMD3(0, y, -half), SIMD3(2 * half + thick, h, thick)),   // near (−z)
+            (SIMD3( half, y, 0), SIMD3(thick, h, 2 * half + thick)),   // right(+x)
+            (SIMD3(-half, y, 0), SIMD3(thick, h, 2 * half + thick)),   // left (−x)
+        ]
+        for (pos, size) in spans {
+            let bar = ModelEntity(mesh: .generateBox(size: size, cornerRadius: 0.01),
+                                  materials: [Self.benchFrameMaterial])
+            bar.position = pos
+            let shape = ShapeResource.generateBox(size: size)
+            bar.components.set(CollisionComponent(shapes: [shape]))
+            bar.components.set(PhysicsBodyComponent(
+                shapes: [shape], mass: 0, material: Self.objectPhysicsMaterial, mode: .static
+            ))
+            simulationRoot.addChild(bar)
         }
     }
 
@@ -511,6 +546,23 @@ final class SandboxScene {
             finger.components.set(body)
             toolEntity.addChild(finger)
         }
+
+        // Wrist camera: a small housing + lens mounted beside the gripper so the
+        // tool "sees" its work. The "Gripper" camera preset renders this viewpoint,
+        // looking down the approach axis — the arm's eye on its surroundings.
+        let camHousing = ModelEntity(
+            mesh: .generateBox(size: SIMD3<Float>(0.05, 0.035, 0.035), cornerRadius: 0.006),
+            materials: [Self.charcoalMaterial]
+        )
+        camHousing.position = SIMD3<Float>(0, 0.065, -0.01)
+        let lens = ModelEntity(
+            mesh: .generateCylinder(height: 0.018, radius: 0.013),
+            materials: [Self.steelMaterial]
+        )
+        lens.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))  // face +Z (down the approach)
+        lens.position = SIMD3<Float>(0, 0.065, 0.02)
+        toolEntity.addChild(camHousing)
+        toolEntity.addChild(lens)
 
         setFingerOpening(1)   // start open
         armRoot.addChild(toolEntity)
@@ -1027,6 +1079,193 @@ final class SandboxScene {
         object.model = model
     }
 
+    // MARK: - Assembly parts (Phase 3/4)
+
+    /// The world pose of any entity, widened to Double for the assembly math.
+    func worldPose(of entity: Entity) -> Pose {
+        Pose(worldMatrix: entity.transformMatrix(relativeTo: nil))
+    }
+
+    /// The gripper tool frame's current world pose (for auto-assembly planning).
+    func toolWorldPose() -> Pose { worldPose(of: toolEntity) }
+
+    /// Converts a world-space bounding sphere into the arm's base (robot) frame,
+    /// so the motion planner (which works in robot units) can treat it as an
+    /// obstacle. Position undoes the base rotation/offset; radius undoes the scale.
+    func robotFrameSphere(worldCenter: SIMD3<Float>, worldRadius: Float) -> CollisionSphere {
+        let c = worldToRobot(worldCenter)
+        let r = worldRadius / armScale
+        return CollisionSphere(center: SIMD3<Double>(Double(c.x), Double(c.y), Double(c.z)),
+                               radius: Double(r))
+    }
+
+    /// Converts a world orientation into the arm's base (robot) frame, undoing the
+    /// one-time Z-up→Y-up root rotation. The mirror of `worldToRobot` for rotations.
+    func worldOrientationToRobot(_ world: simd_double3x3) -> simd_double3x3 {
+        let wqd = simd_quatd(world)
+        let wqf = simd_quatf(ix: Float(wqd.imag.x), iy: Float(wqd.imag.y), iz: Float(wqd.imag.z), r: Float(wqd.real))
+        let robotQf = simd_normalize(CoordinateSpace.robotToRealityKit.inverse * wqf)
+        let robotQd = simd_quatd(ix: Double(robotQf.imag.x), iy: Double(robotQf.imag.y),
+                                 iz: Double(robotQf.imag.z), r: Double(robotQf.real))
+        return simd_double3x3(robotQd)
+    }
+
+    /// Spawns the fixed chassis (the base part) at `worldPose`: a flat slab with
+    /// four side axle pegs and two roof studs. Static, welded into the assembly.
+    @discardableResult
+    func spawnChassis(at worldPose: Pose) -> ModelEntity {
+        let g = CarGeometry.self
+        let size = SIMD3<Float>(Float(g.chassisLength), Float(g.chassisHeight), Float(g.chassisWidth))
+        let chassis = ModelEntity(mesh: .generateBox(size: size, cornerRadius: 0.006),
+                                  materials: [Self.chassisMaterial])
+        chassis.name = "part.\(ModelCar.chassisID)"
+
+        let halfW = Float(g.chassisWidth) / 2
+        let halfH = Float(g.chassisHeight) / 2
+        let axleLen = Float(g.axleLength)
+        let inset = Float(g.axleInsetX)
+
+        // Axle pegs: cylinders (natural axis +Y) rotated to lie along ±Z.
+        for x in [inset, -inset] {
+            for (z, angle): (Float, Float) in [(halfW, .pi / 2), (-halfW, -.pi / 2)] {
+                let axle = ModelEntity(
+                    mesh: .generateCylinder(height: axleLen, radius: Float(g.axleRadius)),
+                    materials: [Self.steelMaterial]
+                )
+                axle.orientation = simd_quatf(angle: angle, axis: SIMD3<Float>(1, 0, 0))
+                axle.position = SIMD3<Float>(x, 0, z + (z > 0 ? axleLen / 2 : -axleLen / 2))
+                chassis.addChild(axle)
+            }
+        }
+        // Roof studs: short cylinders standing up (+Y).
+        for x in [Float(g.studInsetX), -Float(g.studInsetX)] {
+            let stud = ModelEntity(
+                mesh: .generateCylinder(height: Float(g.studHeight), radius: Float(g.studRadius)),
+                materials: [Self.steelMaterial]
+            )
+            stud.position = SIMD3<Float>(x, halfH + Float(g.studHeight) / 2, 0)
+            chassis.addChild(stud)
+        }
+
+        let shape = ShapeResource.generateBox(size: size)
+        chassis.components.set(CollisionComponent(shapes: [shape]))
+        chassis.components.set(PhysicsBodyComponent(
+            shapes: [shape], mass: 0, material: Self.objectPhysicsMaterial, mode: .static
+        ))
+        chassis.transform = Transform(matrix: worldPose.floatMatrix)
+        assemblyRoot.addChild(chassis)
+        return chassis
+    }
+
+    /// Spawns a grabbable wheel (a short cylinder, axis +Y so it lies flat) at a
+    /// tray position. Dynamic, so a failed placement lets it fall.
+    @discardableResult
+    func spawnWheel(id: String, at position: SIMD3<Float>) -> ModelEntity {
+        let g = CarGeometry.self
+        let r = Float(g.wheelRadius), t = Float(g.wheelThickness)
+        let wheel = ModelEntity(mesh: .generateCylinder(height: t, radius: r), materials: [Self.tireMaterial])
+        wheel.name = "part.\(id)"
+        wheel.position = position
+
+        // A metal hub with a dark center bore, so the "hole" the axle enters reads
+        // clearly. Both stand slightly proud of the tire on each face.
+        let hub = ModelEntity(
+            mesh: .generateCylinder(height: t + 0.006, radius: r * 0.5),
+            materials: [Self.steelMaterial]
+        )
+        wheel.addChild(hub)
+        let bore = ModelEntity(
+            mesh: .generateCylinder(height: t + 0.012, radius: Float(g.hubClearance)),
+            materials: [Self.boreMaterial]
+        )
+        wheel.addChild(bore)
+
+        // Box collider approximating the disc — plenty for tray settling.
+        let shape = ShapeResource.generateBox(size: SIMD3<Float>(2 * r, t, 2 * r))
+        wheel.components.set(CollisionComponent(shapes: [shape]))
+        var body = PhysicsBodyComponent(
+            shapes: [shape], mass: Float(g.wheelMass),
+            material: PhysicsMaterialResource.generate(friction: currentFriction, restitution: 0.1),
+            mode: .dynamic
+        )
+        body.isContinuousCollisionDetectionEnabled = true
+        wheel.components.set(body)
+        objectsRoot.addChild(wheel)
+        return wheel
+    }
+
+    /// Spawns the grabbable body shell at a tray position. Dynamic.
+    @discardableResult
+    func spawnBody(at position: SIMD3<Float>) -> ModelEntity {
+        let g = CarGeometry.self
+        let size = SIMD3<Float>(Float(g.bodyLength), Float(g.bodyHeight), Float(g.bodyWidth))
+        let body = ModelEntity(mesh: .generateBox(size: size, cornerRadius: 0.02), materials: [Self.bodyMaterial])
+        body.name = "part.\(ModelCar.bodyID)"
+        body.position = position
+
+        let shape = ShapeResource.generateBox(size: size)
+        body.components.set(CollisionComponent(shapes: [shape]))
+        var pb = PhysicsBodyComponent(
+            shapes: [shape], mass: Float(g.bodyMass),
+            material: PhysicsMaterialResource.generate(friction: currentFriction, restitution: 0.1),
+            mode: .dynamic
+        )
+        pb.isContinuousCollisionDetectionEnabled = true
+        body.components.set(pb)
+        objectsRoot.addChild(body)
+        return body
+    }
+
+    /// Welds a part into the assembly at an EXACT world pose: makes it kinematic,
+    /// reparents it under the (static) assembly root, and sets its transform. This
+    /// is the snap-fit — no physics insertion, just an exact placement + weld.
+    func weldPart(_ entity: ModelEntity, toWorld pose: Pose) {
+        if var body = entity.components[PhysicsBodyComponent.self] {
+            body.mode = .kinematic
+            entity.components.set(body)
+        }
+        entity.setParent(assemblyRoot, preservingWorldTransform: false)
+        entity.transform = Transform(matrix: pose.floatMatrix)
+    }
+
+    /// A brief emissive glow pulse to confirm a snap landed.
+    func pulseHighlight(_ entity: ModelEntity) {
+        setEmissive(entity, intensity: 1.4)
+        Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(450))
+            self?.setEmissive(entity, intensity: 0)
+        }
+    }
+
+    private func setEmissive(_ entity: ModelEntity, intensity: Float) {
+        guard var model = entity.model,
+              var material = model.materials.first as? PhysicallyBasedMaterial else { return }
+        material.emissiveColor = .init(color: NSColor(red: 0.36, green: 0.36, blue: 0.9, alpha: 1))
+        material.emissiveIntensity = intensity
+        model.materials = [material]
+        entity.model = model
+    }
+
+    /// A flat visual mat marking the parts-tray area on the bench (no physics —
+    /// parts rest on the bench itself). Parented to the assembly root so it's
+    /// cleared and re-laid with the rest of the assembly.
+    @discardableResult
+    func spawnTray(center: SIMD3<Float>, size: SIMD2<Float>) -> ModelEntity {
+        let mat = ModelEntity(
+            mesh: .generateBox(size: SIMD3<Float>(size.x, 0.006, size.y), cornerRadius: 0.01),
+            materials: [Self.trayMaterial]
+        )
+        mat.name = "assembly.tray"
+        mat.position = center
+        assemblyRoot.addChild(mat)
+        return mat
+    }
+
+    /// Removes every welded assembly part + tray (used by assembly reset).
+    func clearAssembly() {
+        for child in assemblyRoot.children.map({ $0 }) { child.removeFromParent() }
+    }
+
     // MARK: - Materials (PBR)
 
     private static let aluminiumMaterial: PhysicallyBasedMaterial = {
@@ -1050,6 +1289,44 @@ final class SandboxScene {
         m.baseColor = .init(tint: NSColor(white: 0.55, alpha: 1))
         m.roughness = 0.3
         m.metallic = 0.85
+        return m
+    }()
+
+    // Car part materials (Phase 3/4).
+    private static let chassisMaterial: PhysicallyBasedMaterial = {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: NSColor(red: 0.80, green: 0.30, blue: 0.26, alpha: 1))
+        m.roughness = 0.5; m.metallic = 0.2
+        return m
+    }()
+
+    private static let bodyMaterial: PhysicallyBasedMaterial = {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: NSColor(red: 0.24, green: 0.44, blue: 0.78, alpha: 1))
+        m.roughness = 0.4; m.metallic = 0.3
+        return m
+    }()
+
+    private static let tireMaterial: PhysicallyBasedMaterial = {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: NSColor(white: 0.12, alpha: 1))
+        m.roughness = 0.85; m.metallic = 0.0
+        return m
+    }()
+
+    /// The dark recessed wheel bore (reads as the hole the axle enters).
+    private static let boreMaterial: PhysicallyBasedMaterial = {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: NSColor(white: 0.03, alpha: 1))
+        m.roughness = 0.9; m.metallic = 0.1
+        return m
+    }()
+
+    /// The parts-tray mat.
+    private static let trayMaterial: PhysicallyBasedMaterial = {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: NSColor(red: 0.22, green: 0.24, blue: 0.28, alpha: 1))
+        m.roughness = 0.7; m.metallic = 0.2
         return m
     }()
 

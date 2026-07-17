@@ -112,6 +112,105 @@ struct InverseKinematicsTests {
         #expect(simd_dot(colZ, z) > cos(5 * .pi / 180))   // approach axis down
     }
 
+    // MARK: - Full 6-DOF POSE round trips (position AND orientation)
+
+    /// The round-trip property for full poses: pick joint angles, run FK to get a
+    /// definitely-reachable target POSE, solve IK for it, then confirm the
+    /// solution's own FK reproduces that pose within 1 mm and 0.5°.
+    private func assertPoseRoundTrips(
+        _ truthAngles: [Double], sourceLocation: SourceLocation = #_sourceLocation
+    ) {
+        let arm = RobotArm.ur5
+        let target = arm.endEffectorPose(jointAngles: truthAngles)
+
+        // Solve to a tight orientation tolerance so we can assert sub-degree.
+        let result = arm.inverseKinematics(
+            targetPose: target,
+            tolerance: 5e-4,
+            orientationTolerance: 0.3 * .pi / 180
+        )
+        #expect(result.reached, sourceLocation: sourceLocation)
+
+        // Position error under 1 mm.
+        let achieved = arm.endEffectorPose(jointAngles: result.jointAngles)
+        let posErr = simd_length(achieved.position - target.position)
+        #expect(posErr < 1e-3, sourceLocation: sourceLocation)
+
+        // Orientation error under 0.5°: the angle of R_target · R_achievedᵀ.
+        let rErr = target.orientation * achieved.orientation.transpose
+        let angleErr = simd_length(RobotArm.rotationVector(rErr))   // ≈ radians for small angles
+        #expect(angleErr < 0.5 * .pi / 180, sourceLocation: sourceLocation)
+    }
+
+    @Test func solvesReachablePoseA() { assertPoseRoundTrips([0.3, -0.7, 0.9, -0.2, 0.4, 0.6]) }
+    @Test func solvesReachablePoseB() { assertPoseRoundTrips([-0.6, -0.9, 1.2, 0.7, -0.5, -0.3]) }
+    @Test func solvesReachablePoseC() { assertPoseRoundTrips([0.9, -0.5, 0.5, -1.0, 0.8, 1.1]) }
+
+    // MARK: Unreachable POSE fails cleanly (no NaNs)
+
+    @Test
+    func unreachablePoseReportsFailureWithoutNaNs() {
+        let arm = RobotArm.ur5
+        // Reachable point, but with an impossible-to-hold orientation demanded far
+        // outside the workspace: place it well beyond reach so the solve fails.
+        let pose = Pose(
+            position: SIMD3<Double>(5, 5, 5),
+            orientation: matrix_identity_double3x3
+        )
+        let result = arm.inverseKinematics(targetPose: pose)
+
+        #expect(!result.reached)
+        for angle in result.jointAngles { #expect(angle.isFinite) }
+        #expect(result.positionError.isFinite && result.orientationError.isFinite)
+        #expect(arm.isWithinLimits(result.jointAngles))
+    }
+
+    // MARK: Near-singularity degrades gracefully
+
+    /// Aiming straight up at nearly full extension puts the UR5 close to its
+    /// boundary (shoulder/elbow) singularity. The damped solver must still return
+    /// finite, in-limit angles — not blow up — and flag the poor conditioning.
+    @Test
+    func nearSingularityStaysFiniteAndFlagged() {
+        let arm = RobotArm.ur5
+        // A pose the arm reaches only when almost fully stretched out.
+        let reach = simd_length(arm.endEffectorPosition(jointAngles: [Double](repeating: 0, count: 6)))
+        let target = SIMD3<Double>(0, 0, reach * 0.999)
+
+        let result = arm.inverseKinematics(targetPosition: target, approachAxis: SIMD3<Double>(0, 0, 1))
+
+        for angle in result.jointAngles { #expect(angle.isFinite) }
+        #expect(arm.isWithinLimits(result.jointAngles))
+        // Independently confirm the returned pose really is near-singular, so the
+        // graceful-degradation path was actually exercised.
+        #expect(arm.isNearSingularity(jointAngles: result.jointAngles))
+        #expect(result.nearSingularity)
+    }
+
+    // MARK: Straight-down grasp is solvable from a bent seed (auto-assemble fix)
+
+    /// A tool-down, roll-pinned grasp pose to the side of the base — exactly what
+    /// auto-assemble asks for. It must solve from a bent, non-singular seed (the
+    /// home pose is the extended singularity and seeds the solver poorly).
+    @Test
+    func straightDownGraspSolvesFromBentSeed() {
+        let arm = RobotArm.ur5
+        let target = Pose(
+            position: SIMD3<Double>(0.15, -0.20, 0.13),
+            orientation: simd_double3x3(columns: (
+                SIMD3<Double>(1, 0, 0),
+                SIMD3<Double>(0, -1, 0),
+                SIMD3<Double>(0, 0, -1)
+            ))
+        )
+        let bent = arm.inverseKinematics(
+            targetPose: target,
+            initialGuess: [0, -1.2, 1.4, -1.6, -1.57, 0],
+            orientationTolerance: 6 * .pi / 180
+        )
+        #expect(bent.reached)
+    }
+
     // MARK: Unreachable target fails gracefully
 
     @Test

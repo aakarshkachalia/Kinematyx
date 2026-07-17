@@ -1,0 +1,47 @@
+{
+  "": {
+    "swift-dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/primary.swiftdeps"
+  },
+  "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/AssemblyTests.swift": {
+    "dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/AssemblyTests.d",
+    "object": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/AssemblyTests.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/AssemblyTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/AssemblyTests.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/AssemblyTests.dia"
+  },
+  "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/DynamicsTests.swift": {
+    "dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/DynamicsTests.d",
+    "object": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/DynamicsTests.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/DynamicsTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/DynamicsTests.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/DynamicsTests.dia"
+  },
+  "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/ForwardKinematicsTests.swift": {
+    "dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/ForwardKinematicsTests.d",
+    "object": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/ForwardKinematicsTests.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/ForwardKinematicsTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/ForwardKinematicsTests.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/ForwardKinematicsTests.dia"
+  },
+  "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/InverseKinematicsTests.swift": {
+    "dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/InverseKinematicsTests.d",
+    "object": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/InverseKinematicsTests.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/InverseKinematicsTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/InverseKinematicsTests.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/InverseKinematicsTests.dia"
+  },
+  "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/MotionPlanningTests.swift": {
+    "dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/MotionPlanningTests.d",
+    "object": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/MotionPlanningTests.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/MotionPlanningTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/MotionPlanningTests.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/MotionPlanningTests.dia"
+  },
+  "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/WheelRRDiag.swift": {
+    "dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/WheelRRDiag.d",
+    "object": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/WheelRRDiag.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/WheelRRDiag~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/WheelRRDiag.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/WheelRRDiag.dia"
+  }
+}

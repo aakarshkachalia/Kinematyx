@@ -172,12 +172,17 @@ public struct AssemblyStep: Identifiable, Sendable {
     public let movingFeatureID: String
     public let targetFeatureID: String
     public let mateTransform: Pose
+    /// IDs of steps that must be completed before this one may run. This is how
+    /// sequencing constraints are encoded — e.g. the body shell lists all four
+    /// wheel steps here, because it covers the axles once fitted.
+    public let prerequisites: [String]
 
     public init(
         id: String,
         movingPartID: String, movingFeatureID: String,
         targetPartID: String, targetFeatureID: String,
-        mateTransform: Pose = MatingFeature.opposedMateTransform()
+        mateTransform: Pose = MatingFeature.opposedMateTransform(),
+        prerequisites: [String] = []
     ) {
         self.id = id
         self.movingPartID = movingPartID
@@ -185,6 +190,7 @@ public struct AssemblyStep: Identifiable, Sendable {
         self.targetPartID = targetPartID
         self.targetFeatureID = targetFeatureID
         self.mateTransform = mateTransform
+        self.prerequisites = prerequisites
     }
 }
 
@@ -205,6 +211,34 @@ public struct AssemblyDefinition: Sendable {
     }
 
     public func part(id: String) -> AssemblyPart? { parts.first { $0.id == id } }
+
+    public func step(id: String) -> AssemblyStep? { steps.first { $0.id == id } }
+}
+
+// MARK: - Sequencing
+
+public extension AssemblyDefinition {
+    /// Whether `step` may run given the set of already-completed step IDs: it must
+    /// not be done already, and all its prerequisites must be complete.
+    func isStepAvailable(_ step: AssemblyStep, completed: Set<String>) -> Bool {
+        !completed.contains(step.id) && step.prerequisites.allSatisfy { completed.contains($0) }
+    }
+
+    /// Every step that may run right now, in definition order.
+    func availableSteps(completed: Set<String>) -> [AssemblyStep] {
+        steps.filter { isStepAvailable($0, completed: completed) }
+    }
+
+    /// The next step to perform (first available in order), or nil if none remain
+    /// available (either all done, or blocked by incomplete prerequisites).
+    func nextStep(completed: Set<String>) -> AssemblyStep? {
+        availableSteps(completed: completed).first
+    }
+
+    /// Whether every step has been completed.
+    func isComplete(completed: Set<String>) -> Bool {
+        completed.count >= steps.count && steps.allSatisfy { completed.contains($0.id) }
+    }
 }
 
 // MARK: - Mate pose math
@@ -253,6 +287,31 @@ public extension AssemblyDefinition {
             let targetFeature = targetPart.feature(id: step.targetFeatureID)
         else { return nil }
         return Pose(targetPartWorld.matrix * targetFeature.localPose.matrix)
+    }
+
+    /// The PRE-INSERT standoff pose and the final MATE pose for the moving part.
+    ///
+    /// The pre-insert pose is the mated pose backed off along the socket's
+    /// insertion axis by `backoff` meters. The arm reaches pre-insert FIRST, then
+    /// travels in a straight Cartesian line into the mate pose — so the part
+    /// approaches squarely down the axle instead of arriving from an angle and
+    /// sweeping through the target.
+    ///
+    /// - Returns: `(preInsert, mate)` world poses, or `nil` for an invalid step.
+    func insertionPoses(
+        for step: AssemblyStep, targetPartWorld: Pose, backoff: Double = 0.05
+    ) -> (preInsert: Pose, mate: Pose)? {
+        guard
+            let mate = mateWorldPose(for: step, targetPartWorld: targetPartWorld),
+            let socket = targetFeatureWorldPose(for: step, targetPartWorld: targetPartWorld)
+        else { return nil }
+        // The socket's +Z points OUT of the hole — the direction to stand off in.
+        let approach = simd_normalize(socket.orientation.columns.2)
+        let preInsert = Pose(
+            position: mate.position + approach * backoff,
+            orientation: mate.orientation
+        )
+        return (preInsert, mate)
     }
 }
 

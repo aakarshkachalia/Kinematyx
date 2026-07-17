@@ -18,6 +18,7 @@ struct RobotViewport: View {
     var scene: SandboxScene
     var challenges: ChallengeManager
     var drawStore: DrawnShapeStore
+    var assembly: AssemblyController
 
     /// Current lighting/environment preset (Phase 7).
     @State private var environment: EnvironmentPreset = .classroom
@@ -43,12 +44,16 @@ struct RobotViewport: View {
                 RealityView { content in
                     await scene.build(into: &content)
                     controller.attach(model: model, scene: scene)
+                    assembly.attach(scene: scene, arm: controller)
 
                     // One place drives everything each frame.
                     scene.onFrame = { [weak scene] dt in
                         guard let scene else { return }
                         controller.tick(dt)
                         scene.updateArm(with: model.jointAngles)
+                        // Snap check runs AFTER updateArm so the held part's world
+                        // transform for this frame is current.
+                        assembly.tick()
                         scene.updateTrail()
                         challenges.evaluate(scene: scene, controller: controller)
                         if rig.followGripper {
@@ -130,6 +135,18 @@ struct RobotViewport: View {
                 ObjectShelf(store: drawStore,
                             onDraw: { showingDraw = true },
                             onClear: { scene.clearAll() })
+            }
+
+            // Live snap-alignment indicator, bottom-right, only while lining up.
+            if let indicator = assembly.indicator {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        SnapIndicator(indicator: indicator)
+                            .padding(.bottom, 96)
+                    }
+                }
             }
         }
         .padding(16)
@@ -309,6 +326,46 @@ private struct SettingsPanel: View {
                     .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
             Slider(value: value, in: range).onChange(of: value.wrappedValue) { _, _ in onChange() }
+        }
+    }
+}
+
+// MARK: - Snap alignment indicator (Phase 3)
+
+/// Shows how far the held part's mating feature is from its target socket, in
+/// both distance and angle, turning green when both are within snap tolerance.
+private struct SnapIndicator: View {
+    let indicator: AssemblyController.Indicator
+
+    private var tint: Color { indicator.withinTolerance ? .green : Color(red: 0.36, green: 0.36, blue: 0.9) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: indicator.withinTolerance ? "checkmark.circle.fill" : "scope")
+                    .foregroundStyle(tint)
+                Text(indicator.withinTolerance ? "Ready to snap" : "Aligning \(indicator.partName)")
+                    .font(.caption.weight(.semibold))
+            }
+            HStack(spacing: 12) {
+                readout("Distance", String(format: "%.0f mm", indicator.distanceMillimeters),
+                        ok: indicator.distanceMillimeters <= AssemblyController.snapPositionTolerance * 1000)
+                readout("Angle", String(format: "%.0f°", indicator.angleDegrees),
+                        ok: indicator.angleDegrees <= AssemblyController.snapOrientationTolerance * 180 / .pi)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(tint.opacity(0.6), lineWidth: 1.5))
+        .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+    }
+
+    private func readout(_ label: String, _ value: String, ok: Bool) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.callout.monospacedDigit().weight(.semibold))
+                .foregroundStyle(ok ? .green : .primary)
+            Text(label).font(.caption2).foregroundStyle(.secondary)
         }
     }
 }

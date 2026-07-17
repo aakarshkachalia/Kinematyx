@@ -31,7 +31,7 @@ public struct SeededGenerator: RandomNumberGenerator {
     }
 }
 
-public struct MotionPlanner {
+public struct MotionPlanner: Sendable {
     /// Capsule radius for each link during collision checks.
     public var linkRadius: Double
     /// Max joint-space distance a single tree extension advances (radians).

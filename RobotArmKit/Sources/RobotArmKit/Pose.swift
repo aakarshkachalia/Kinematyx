@@ -67,3 +67,42 @@ public extension RobotArm {
         Pose(forwardKinematics(jointAngles: jointAngles).last ?? matrix_identity_double4x4)
     }
 }
+
+// MARK: - Pose interpolation and error (Cartesian motion + snap checks)
+
+public extension Pose {
+    /// CARTESIAN (straight-line) interpolation toward `other`: position is
+    /// linearly interpolated and orientation is SLERPed (shortest-arc blend of
+    /// the two rotations). `t = 0` → self, `t = 1` → `other`.
+    ///
+    /// WHY THIS MATTERS (Cartesian vs joint-space interpolation):
+    /// If you instead interpolate the six JOINT ANGLES linearly between the start
+    /// and end poses, each joint moves at a constant rate — but because the tool's
+    /// position is a nonlinear function of the angles, the tool traces a CURVED
+    /// arc through space. For assembly that arc can sweep the held part sideways
+    /// THROUGH the target before arriving. Interpolating the tool POSE here and
+    /// solving IK at each sample instead keeps the tool on a straight line, so a
+    /// peg travels dead straight down its insertion axis into the hole.
+    func interpolated(to other: Pose, t: Double) -> Pose {
+        let p = position + (other.position - position) * t
+        let qA = simd_quatd(orientation)
+        let qB = simd_quatd(other.orientation)
+        let q = simd_slerp(qA, qB, t)
+        return Pose(position: p, orientation: simd_double3x3(q))
+    }
+
+    /// Positional distance (meters) to another pose.
+    func positionDistance(to other: Pose) -> Double {
+        simd_length(other.position - position)
+    }
+
+    /// Smallest rotation angle (radians) between this orientation and another's,
+    /// via the angle of the relative rotation `Rᵀ·R'` (`acos((trace−1)/2)`). This
+    /// is exact for any angle, unlike the small-angle rotation-vector magnitude.
+    func angularDistance(to other: Pose) -> Double {
+        let r = orientation.transpose * other.orientation
+        let trace = r.columns.0.x + r.columns.1.y + r.columns.2.z
+        let cosAngle = min(1, max(-1, (trace - 1) / 2))
+        return acos(cosAngle)
+    }
+}

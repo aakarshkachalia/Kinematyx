@@ -9,9 +9,30 @@
 
 import Foundation
 import RealityKit
+import RobotArmKit
 import simd
 
 // MARK: - Precision bridging (Double → Float)
+
+extension simd_double4x4 {
+    /// Widens a single-precision matrix (a RealityKit world transform) back to the
+    /// double precision RobotArmKit's assembly/IK math works in.
+    init(_ m: simd_float4x4) {
+        self.init(
+            SIMD4<Double>(m.columns.0),
+            SIMD4<Double>(m.columns.1),
+            SIMD4<Double>(m.columns.2),
+            SIMD4<Double>(m.columns.3)
+        )
+    }
+}
+
+extension Pose {
+    /// Builds a `Pose` from a RealityKit world transform (Float → Double).
+    init(worldMatrix m: simd_float4x4) { self.init(simd_double4x4(m)) }
+    /// The single-precision transform for handing this pose back to RealityKit.
+    var floatMatrix: simd_float4x4 { simd_float4x4(matrix) }
+}
 
 extension simd_float4x4 {
     /// Converts a double-precision 4x4 matrix (what RobotArmKit produces) into

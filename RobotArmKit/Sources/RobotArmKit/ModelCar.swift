@@ -15,38 +15,39 @@ import Foundation
 import simd
 
 /// Dimensions (meters) shared by the assembly definition and the app's meshes,
-/// so the visible geometry and the mating math can never drift apart. Everything
-/// is sized for a UR5 to handle comfortably (5–15 cm per part).
+/// so the visible geometry and the mating math can never drift apart. Sized as
+/// chunky industrial castings, but kept within the gripper's ~0.24 m open span so
+/// the parts are still grabbable.
 public enum CarGeometry {
-    // Chassis: a flat slab.
-    public static let chassisLength: Double = 0.16   // x
-    public static let chassisHeight: Double = 0.04   // y
-    public static let chassisWidth:  Double = 0.10   // z
+    // Chassis: a heavy flat slab.
+    public static let chassisLength: Double = 0.42   // x
+    public static let chassisHeight: Double = 0.10   // y
+    public static let chassisWidth:  Double = 0.26   // z
 
     // Axle pegs on the chassis sides.
-    public static let axleRadius: Double = 0.012
-    public static let axleLength: Double = 0.03
-    public static let axleInsetX: Double = 0.055     // front/back offset from center
+    public static let axleRadius: Double = 0.03
+    public static let axleLength: Double = 0.10
+    public static let axleInsetX: Double = 0.15      // front/back offset from center
 
-    // Wheels: short cylinders (axis = local +Z) with a center hub hole.
-    public static let wheelRadius: Double = 0.04
-    public static let wheelThickness: Double = 0.03
-    public static let hubClearance: Double = 0.012
+    // Wheels: short cylinders (mesh axis = local +Y) with a center hub bore.
+    public static let wheelRadius: Double = 0.11
+    public static let wheelThickness: Double = 0.08
+    public static let hubClearance: Double = 0.035
 
     // Studs on the chassis top that locate the body.
-    public static let studRadius: Double = 0.008
-    public static let studHeight: Double = 0.02
-    public static let studInsetX: Double = 0.05
+    public static let studRadius: Double = 0.022
+    public static let studHeight: Double = 0.06
+    public static let studInsetX: Double = 0.14
 
     // Body shell.
-    public static let bodyLength: Double = 0.14  // x
-    public static let bodyHeight: Double = 0.05  // y
-    public static let bodyWidth:  Double = 0.09  // z
+    public static let bodyLength: Double = 0.36  // x
+    public static let bodyHeight: Double = 0.14  // y
+    public static let bodyWidth:  Double = 0.22  // z
 
-    // Masses (kg).
-    public static let chassisMass: Double = 0.6
-    public static let wheelMass: Double = 0.1
-    public static let bodyMass: Double = 0.4
+    // Masses (kg) — chunky but within the UR5's payload.
+    public static let chassisMass: Double = 3.0
+    public static let wheelMass: Double = 0.8
+    public static let bodyMass: Double = 2.0
 }
 
 public enum ModelCar {
@@ -112,16 +113,19 @@ public enum ModelCar {
 
         // --- Wheels: hub hole on the axis (+Z), grasped at the rim (hub clear). ---
         func makeWheel(id: String, name: String) -> AssemblyPart {
+            // The wheel mesh is a cylinder about its local +Y (it lies flat in the
+            // tray), so the hub's insertion axis is +Y: feature +Z → part +Y.
             let hub = MatingFeature(
                 id: "hub", kind: .hole,
-                localPose: Pose(position: .zero),   // +Z = wheel axis
+                localPose: Pose(position: .zero, orientation: rotX(-.pi / 2)),
                 clearance: g.hubClearance
             )
-            // Rim grasp points, well clear of the hub. Orientation is approximate
-            // (a radial pinch); it's refined for auto-grasp in Phase 5.
+            // Rim grasp points in the wheel's disc plane (XZ), well clear of the
+            // hub axis. Orientation is approximate (a radial pinch); it's refined
+            // for auto-grasp in Phase 5.
             let grasps = [
                 Pose(position: SIMD3<Double>(g.wheelRadius, 0, 0)),
-                Pose(position: SIMD3<Double>(0, g.wheelRadius, 0)),
+                Pose(position: SIMD3<Double>(0, 0, g.wheelRadius)),
             ]
             return AssemblyPart(id: id, name: name, mass: g.wheelMass, graspPoses: grasps, features: [hub])
         }

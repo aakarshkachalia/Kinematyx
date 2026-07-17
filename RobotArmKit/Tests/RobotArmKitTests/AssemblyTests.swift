@@ -145,6 +145,47 @@ struct AssemblyTests {
         #expect(pegHoleDefinition().isValid)
     }
 
+    // MARK: Pre-insert waypoint
+
+    @Test func preInsertStandsOffAlongInsertionAxis() {
+        let def = pegHoleDefinition()
+        let step = def.steps[0]
+        let targetWorld = Pose(
+            position: SIMD3<Double>(0.3, 0.2, 0.1),
+            orientation: rot(.pi / 5, SIMD3<Double>(0, 1, 0.4))
+        )
+        let backoff = 0.05
+        let poses = def.insertionPoses(for: step, targetPartWorld: targetWorld, backoff: backoff)
+        #expect(poses != nil)
+        let (preInsert, mate) = poses!
+
+        // Pre-insert is exactly `backoff` from the mate pose...
+        #expect(abs(preInsert.positionDistance(to: mate) - backoff) < 1e-9)
+        // ...along the socket's insertion axis (+Z of the target feature world)...
+        let socket = def.targetFeatureWorldPose(for: step, targetPartWorld: targetWorld)!
+        let approach = simd_normalize(socket.orientation.columns.2)
+        let offset = preInsert.position - mate.position
+        #expect(simd_length(offset - approach * backoff) < 1e-9)
+        // ...and with the SAME orientation as the mate pose (pure translation).
+        // (acos near 1 is numerically noisy, so allow a µrad of slack.)
+        #expect(preInsert.angularDistance(to: mate) < 1e-6)
+    }
+
+    // MARK: Cartesian interpolation
+
+    @Test func interpolationHitsEndpointsAndMidpoint() {
+        let a = Pose(position: SIMD3<Double>(0, 0, 0), orientation: rot(0, SIMD3<Double>(0, 0, 1)))
+        let b = Pose(position: SIMD3<Double>(1, 2, 3), orientation: rot(.pi / 2, SIMD3<Double>(0, 0, 1)))
+
+        #expect(a.interpolated(to: b, t: 0).positionDistance(to: a) < 1e-12)
+        #expect(a.interpolated(to: b, t: 1).positionDistance(to: b) < 1e-12)
+
+        let mid = a.interpolated(to: b, t: 0.5)
+        #expect(simd_length(mid.position - SIMD3<Double>(0.5, 1, 1.5)) < 1e-12)
+        // Halfway through a 90° turn is 45°.
+        #expect(abs(mid.angularDistance(to: a) - .pi / 4) < 1e-9)
+    }
+
     @Test func mismatchedFeatureKindsAreReported() {
         // Point the step at a hole→hole pairing, which cannot mate.
         let moving = AssemblyPart(
@@ -162,5 +203,48 @@ struct AssemblyTests {
         let def = AssemblyDefinition(name: "Bad", parts: [moving, target], basePartID: "t", steps: [step])
         #expect(!def.isValid)
         #expect(def.validationIssues().contains { $0.contains("can't mate") })
+    }
+
+    // MARK: Model car
+
+    @Test func modelCarIsValid() {
+        let issues = ModelCar.definition.validationIssues()
+        #expect(issues.isEmpty, "Model car should be well-formed: \(issues)")
+    }
+
+    @Test func modelCarSequencesWheelsBeforeBody() {
+        let def = ModelCar.definition
+        var completed = Set<String>()
+
+        // With nothing done, the four wheel steps are available but the body is not.
+        let firstAvailable = def.availableSteps(completed: completed).map(\.id)
+        #expect(firstAvailable.contains("step.wheelFL"))
+        #expect(!firstAvailable.contains("step.body"))
+
+        // Completing three wheels still leaves the body blocked.
+        completed = ["step.wheelFL", "step.wheelFR", "step.wheelRL"]
+        #expect(!def.isStepAvailable(def.step(id: "step.body")!, completed: completed))
+
+        // All four wheels done → the body unlocks.
+        completed.insert("step.wheelRR")
+        #expect(def.isStepAvailable(def.step(id: "step.body")!, completed: completed))
+        #expect(def.nextStep(completed: completed)?.id == "step.body")
+
+        // And with the body done, the build is complete.
+        completed.insert("step.body")
+        #expect(def.isComplete(completed: completed))
+    }
+
+    @Test func modelCarWheelSeatsOnAxle() {
+        // Sanity: computing the wheel's mate pose and pushing its hub through its
+        // local pose lands exactly on the chassis peg (feature origins coincide).
+        let def = ModelCar.definition
+        let step = def.step(id: "step.wheelFL")!
+        let chassisWorld = Pose(position: SIMD3<Double>(0.4, 0.75, 0.1))
+        let wheelWorld = def.mateWorldPose(for: step, targetPartWorld: chassisWorld)!
+        let wheel = def.part(id: "wheelFL")!
+        let hubWorld = Pose(wheelWorld.matrix * wheel.feature(id: "hub")!.localPose.matrix)
+        let pegWorld = def.targetFeatureWorldPose(for: step, targetPartWorld: chassisWorld)!
+        #expect(hubWorld.positionDistance(to: pegWorld) < 1e-9)
     }
 }

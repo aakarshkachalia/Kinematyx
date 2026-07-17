@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/primary.swiftdeps"
+  },
+  "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.derived/runner.swift": {
+    "dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/runner.d",
+    "object": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/runner.swift.o",
+    "swiftmodule": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/runner~partial.swiftmodule",
+    "swift-dependencies": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/runner.swiftdeps",
+    "diagnostics": "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/runner.dia"
+  }
+}
