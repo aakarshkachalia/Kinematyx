@@ -62,6 +62,16 @@ struct RobotViewport: View {
                             scene.updateCamera(position: rig.position, focus: rig.focus)
                         }
                     }
+
+                    // TEMP DIAGNOSTIC: auto-run the assembly to capture logs headlessly.
+                    if ProcessInfo.processInfo.environment["KINEMATYX_AUTOTEST"] != nil {
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(2))
+                            assembly.loadCar()
+                            try? await Task.sleep(for: .seconds(1))
+                            assembly.startAuto()
+                        }
+                    }
                 }
 
                 ViewportInput(

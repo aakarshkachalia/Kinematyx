@@ -449,6 +449,27 @@ final class ArmController {
     /// The tool frame's current world pose.
     func toolWorldPose() -> Pose { scene.toolWorldPose() }
 
+    /// Diagnostic: reports whether a world tool pose is IK-reachable and the best
+    /// solver error, for logging auto-assemble failures. Mirrors `solveWorldPose`.
+    func reachDiagnostic(_ worldPose: Pose) -> String {
+        let wp = worldPose.position
+        let rp = scene.worldToRobot(SIMD3<Float>(Float(wp.x), Float(wp.y), Float(wp.z)))
+        let robotPos = SIMD3<Double>(Double(rp.x), Double(rp.y), Double(rp.z))
+        let target = Pose(position: robotPos, orientation: scene.worldOrientationToRobot(worldPose.orientation))
+        let seeds: [[Double]] = [
+            model.jointAngles, Self.readyPose,
+            [0.6, -1.0, 1.2, -1.4, -1.57, 0.0], [-0.6, -1.0, 1.2, -1.4, 1.57, 0.0],
+        ]
+        var best = Double.greatestFiniteMagnitude, rot = 0.0, reached = false
+        for seed in seeds {
+            let r = arm.inverseKinematics(targetPose: target, initialGuess: seed,
+                                          tolerance: 4e-3, orientationTolerance: 6 * .pi / 180)
+            if r.positionError < best { best = r.positionError; rot = r.orientationError }
+            if r.reached { reached = true; break }
+        }
+        return "reached=\(reached) robotDist=\(String(format: "%.3f", simd_length(robotPos)))m bestPosErr=\(String(format: "%.4f", best))m rotErr=\(String(format: "%.1f", rot * 180 / .pi))deg"
+    }
+
     /// Eases the arm to a joint solution, returning when the move finishes.
     func easeTo(_ target: [Double], status newStatus: ArmStatus? = nil) async {
         if let newStatus { status = newStatus }

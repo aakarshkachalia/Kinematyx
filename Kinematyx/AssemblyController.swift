@@ -95,6 +95,7 @@ final class AssemblyController {
     func loadCar() {
         clear()
         let benchTop = scene.benchTopHeight
+        print("[assembly] loadCar — arm base at \(scene.armBaseWorld) (expect z=-0.15 in current build)")
 
         // Everything is grouped in the front-right work area, spaced generously and
         // well clear of the arm's base column (~0.18 m radius) so no part spawns on
@@ -268,20 +269,25 @@ final class AssemblyController {
         else { failureMessage = "Step \(step.id): missing part or base."; return false }
 
         let center = scene.worldPose(of: entity).position
+        print("[assembly] \(step.id): part at \(center)")
 
         // 1. Approach directly above the part (tool down), routing around the others.
-        guard await planMove(to: downTool(at: center + SIMD3<Double>(0, 0.22, 0)),
-                             excluding: step.movingPartID, status: .movingToObject)
+        let approachPose = downTool(at: center + SIMD3<Double>(0, 0.22, 0))
+        print("[assembly] \(step.id) approach: \(arm.reachDiagnostic(approachPose))")
+        guard await planMove(to: approachPose, excluding: step.movingPartID, status: .movingToObject)
         else { return failIK(step, "approach") }
 
         // 2. Descend onto it.
-        guard await move(to: downTool(at: center + SIMD3<Double>(0, 0.02, 0)))
+        let descendPose = downTool(at: center + SIMD3<Double>(0, 0.02, 0))
+        print("[assembly] \(step.id) descend: \(arm.reachDiagnostic(descendPose))")
+        guard await move(to: descendPose)
         else { return failIK(step, "descend") }
 
         // 3. Close to grab, then capture how the part sits in the tool frame so we
         //    can command the PART to any world pose from here on.
         await arm.closeGripperAsync()
         guard arm.isHolding else {
+            print("[assembly] \(step.id): FAILED to grasp")
             metrics.failedSnaps += 1
             failureMessage = "Step \(step.id): failed to grasp the part."
             return false
@@ -292,8 +298,9 @@ final class AssemblyController {
         _ = await move(to: downTool(at: center + SIMD3<Double>(0, 0.24, 0)), status: .movingToDrop)
 
         // 5. Go to the pre-insert standoff, routing the held part around the others.
-        guard await planMove(to: toolPose(part: insertion.preInsert, partInTool: partInTool),
-                             excluding: step.movingPartID)
+        let preInsertPose = toolPose(part: insertion.preInsert, partInTool: partInTool)
+        print("[assembly] \(step.id) pre-insert: \(arm.reachDiagnostic(preInsertPose))")
+        guard await planMove(to: preInsertPose, excluding: step.movingPartID)
         else { return failIK(step, "pre-insert") }
 
         // 6. CARTESIAN straight-line insert: step the PART pose from pre-insert to
@@ -318,6 +325,7 @@ final class AssemblyController {
 
         // 7. Confirm it snapped.
         guard completedSteps.contains(step.id) else {
+            print("[assembly] \(step.id): inserted but never within snap tolerance (last indicator: \(indicator.map { "\($0.distanceMillimeters)mm \($0.angleDegrees)deg" } ?? "nil"))")
             metrics.failedSnaps += 1
             failureMessage = "Step \(step.id): part never came within snap tolerance."
             return false

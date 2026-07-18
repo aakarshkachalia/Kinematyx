@@ -882,6 +882,9 @@ final class SandboxScene {
     /// The bench-top height, so challenge checks can reason about "elevated".
     var benchTopHeight: Float { benchHeight }
 
+    /// The arm base world position (for diagnostics / confirming a fresh build).
+    var armBaseWorld: SIMD3<Float> { armBaseOffset }
+
     /// A lightweight snapshot of each dropped object's kind + world position,
     /// used by the challenge checker (Phase 9).
     func objectSnapshots() -> [(kind: ObjectKind, position: SIMD3<Float>)] {
