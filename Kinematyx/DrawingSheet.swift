@@ -26,7 +26,7 @@ struct DrawingSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Draw a Shape").font(.title2.bold())
-            Text("Sketch an outline. It becomes a 3D object (the filled convex outline) you can drag into the world.")
+            Text("Sketch an outline. It becomes a 3D object shaped like your drawing that you can drag into the world.")
                 .font(.caption).foregroundStyle(.secondary)
 
             canvas

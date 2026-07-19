@@ -74,8 +74,15 @@ final class ArmController {
         heldKind = nil
         heldPayloadMass = 0
         pendingGrasp = nil
+        explicitHold = false
         status = .idle
     }
+
+    /// True while auto-assembly is holding a KNOWN part it grabbed directly. Such a
+    /// hold must NOT be auto-released when the fingers settle "open" — large parts
+    /// (the body shell) are wider than the finger span, so their computed opening is
+    /// fully open, which would otherwise drop them the instant they're grasped.
+    private var explicitHold = false
 
     // Arm joint animation.
     private var isAnimating = false
@@ -204,8 +211,10 @@ final class ArmController {
 
     private func onGripperSettled() {
         if isGripperOpen {
-            // Finished opening: release whatever we held (it falls per Phase 1).
-            if let held = heldObject {
+            // Finished opening: release whatever we held (it falls per Phase 1) —
+            // UNLESS this is an explicit auto-assembly hold of a known part, whose
+            // wide finger opening must not be mistaken for a "let go" gesture.
+            if let held = heldObject, !explicitHold {
                 scene.release(held)
                 heldObject = nil
                 heldKind = nil
@@ -430,13 +439,7 @@ final class ArmController {
         )
         // Looser than the snap tolerance on purpose: waypoint precision only needs
         // to get the part close enough for the 15 mm / 15° snap to take over.
-        let seeds: [[Double]] = [
-            model.jointAngles,
-            Self.readyPose,
-            [0.6, -1.0, 1.2, -1.4, -1.57, 0.0],
-            [-0.6, -1.0, 1.2, -1.4, 1.57, 0.0],
-        ]
-        for seed in seeds {
+        for seed in Self.ikSeeds(towardRobotPosition: target.position, current: model.jointAngles) {
             let result = arm.inverseKinematics(
                 targetPose: target, initialGuess: seed,
                 tolerance: 4e-3, orientationTolerance: 6 * .pi / 180
@@ -446,29 +449,27 @@ final class ArmController {
         return nil
     }
 
+    /// IK seeds to try for a target, in order. Includes the current pose, a couple
+    /// of fixed bent poses, AND poses whose base joint (J1) already points toward
+    /// the target's azimuth. The azimuth seeds are what let deep, off-to-one-side
+    /// targets — the rear-RIGHT wheel especially — converge: the fixed seeds all
+    /// aim J1 near 0/±0.6 rad, so a target at a larger azimuth left the damped
+    /// solver stalled a few millimetres short.
+    static func ikSeeds(towardRobotPosition p: SIMD3<Double>, current: [Double]) -> [[Double]] {
+        let az = atan2(p.y, p.x)   // base-joint angle that faces the target
+        return [
+            current,
+            readyPose,
+            [0.6, -1.0, 1.2, -1.4, -1.57, 0.0],
+            [-0.6, -1.0, 1.2, -1.4, 1.57, 0.0],
+            [az, -1.2, 1.4, -1.6, -1.57, 0.0],
+            [az, -1.0, 1.2, -1.4, 1.57, 0.0],
+            [az, -1.5, 1.8, -1.8, -1.57, 0.0],
+        ]
+    }
+
     /// The tool frame's current world pose.
     func toolWorldPose() -> Pose { scene.toolWorldPose() }
-
-    /// Diagnostic: reports whether a world tool pose is IK-reachable and the best
-    /// solver error, for logging auto-assemble failures. Mirrors `solveWorldPose`.
-    func reachDiagnostic(_ worldPose: Pose) -> String {
-        let wp = worldPose.position
-        let rp = scene.worldToRobot(SIMD3<Float>(Float(wp.x), Float(wp.y), Float(wp.z)))
-        let robotPos = SIMD3<Double>(Double(rp.x), Double(rp.y), Double(rp.z))
-        let target = Pose(position: robotPos, orientation: scene.worldOrientationToRobot(worldPose.orientation))
-        let seeds: [[Double]] = [
-            model.jointAngles, Self.readyPose,
-            [0.6, -1.0, 1.2, -1.4, -1.57, 0.0], [-0.6, -1.0, 1.2, -1.4, 1.57, 0.0],
-        ]
-        var best = Double.greatestFiniteMagnitude, rot = 0.0, reached = false
-        for seed in seeds {
-            let r = arm.inverseKinematics(targetPose: target, initialGuess: seed,
-                                          tolerance: 4e-3, orientationTolerance: 6 * .pi / 180)
-            if r.positionError < best { best = r.positionError; rot = r.orientationError }
-            if r.reached { reached = true; break }
-        }
-        return "reached=\(reached) robotDist=\(String(format: "%.3f", simd_length(robotPos)))m bestPosErr=\(String(format: "%.4f", best))m rotErr=\(String(format: "%.1f", rot * 180 / .pi))deg"
-    }
 
     /// Eases the arm to a joint solution, returning when the move finishes.
     func easeTo(_ target: [Double], status newStatus: ArmStatus? = nil) async {
@@ -543,6 +544,27 @@ final class ArmController {
     func openGripperAsync() async {
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
             openGripper { cont.resume() }
+        }
+    }
+
+    /// Auto-assembly grasp of a KNOWN part: grabs that exact entity directly
+    /// (no proximity guess, which is timing-sensitive and can miss) and closes the
+    /// fingers to fit it. The part is held even if it's wider than the finger span.
+    func closeGripperOnPart(_ object: ModelEntity) async {
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            guard !gripperAnimating else { cont.resume(); return }
+            if heldObject == nil {
+                explicitHold = true
+                performGrab(object)
+            }
+            let target = scene.gripOpening(for: object)
+            audio.playClick()
+            guard abs(target - gripperOpening) > 0.001 else { cont.resume(); return }
+            gripperCompletion = { cont.resume() }
+            gripperFrom = gripperOpening
+            gripperTo = target
+            gripperElapsed = 0
+            gripperAnimating = true
         }
     }
 

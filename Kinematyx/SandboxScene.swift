@@ -36,11 +36,10 @@ final class SandboxScene {
     /// (like a real robot cell) keeps its whole reach ABOVE the floor, so the arm
     /// no longer clips through the ground in its normal working poses.
     private let benchHeight: Float = 0.75
-    /// Horizontal shift of the arm base on the bench. Moved toward the rear-right
-    /// build site (−Z, the right-side axle pegs) so the rear wheels — the RR wheel
-    /// in particular — sit comfortably inside the arm's dexterous workspace. X is
-    /// kept at 0 so the base plinth stays clear of the chassis (which sits at +X).
-    private let armBaseHorizontal = SIMD3<Float>(0, 0, -0.15)
+    /// Horizontal shift of the arm base on the bench (kept at origin). The model
+    /// car is instead spawned OUT along +X (see AssemblyController.siteOffset) so
+    /// every axle sits in the arm's dexterous workspace, clear of the base.
+    private let armBaseHorizontal = SIMD3<Float>(0, 0, 0)
     /// World-space offset of the arm's base (top of the bench, shifted horizontally).
     private var armBaseOffset: SIMD3<Float> {
         SIMD3<Float>(armBaseHorizontal.x, benchHeight, armBaseHorizontal.z)
@@ -882,9 +881,6 @@ final class SandboxScene {
     /// The bench-top height, so challenge checks can reason about "elevated".
     var benchTopHeight: Float { benchHeight }
 
-    /// The arm base world position (for diagnostics / confirming a fresh build).
-    var armBaseWorld: SIMD3<Float> { armBaseOffset }
-
     /// A lightweight snapshot of each dropped object's kind + world position,
     /// used by the challenge checker (Phase 9).
     func objectSnapshots() -> [(kind: ObjectKind, position: SIMD3<Float>)] {
@@ -1326,6 +1322,91 @@ final class SandboxScene {
         return body
     }
 
+    // MARK: - Tower parts
+
+    /// A stud (short upright cylinder) standing on the top face of a part, matching
+    /// TowerGeometry — the locator later pieces socket onto.
+    private func addTowerStud(to parent: ModelEntity, partHalfHeight: Float) {
+        let g = TowerGeometry.self
+        let stud = ModelEntity(
+            mesh: .generateCylinder(height: Float(g.studHeight), radius: Float(g.studRadius)),
+            materials: [Self.steelMaterial]
+        )
+        stud.position = SIMD3<Float>(0, partHalfHeight + Float(g.studHeight) / 2, 0)
+        parent.addChild(stud)
+    }
+
+    /// Spawns the fixed tower base plate (a heavy slab with a top stud). Static,
+    /// welded into the assembly like the car chassis.
+    @discardableResult
+    func spawnTowerBase(at worldPose: Pose) -> ModelEntity {
+        let g = TowerGeometry.self
+        let size = SIMD3<Float>(Float(g.baseLength), Float(g.baseHeight), Float(g.baseWidth))
+        let base = ModelEntity(mesh: .generateBox(size: size, cornerRadius: 0.008),
+                               materials: [Self.towerBaseMaterial])
+        base.name = "part.\(Tower.baseID)"
+        addTowerStud(to: base, partHalfHeight: Float(g.baseHeight) / 2)
+
+        let shape = ShapeResource.generateBox(size: size)
+        base.components.set(CollisionComponent(shapes: [shape]))
+        base.components.set(PhysicsBodyComponent(
+            shapes: [shape], mass: 0, material: Self.objectPhysicsMaterial, mode: .static
+        ))
+        base.transform = Transform(matrix: worldPose.floatMatrix)
+        assemblyRoot.addChild(base)
+        return base
+    }
+
+    /// Spawns a grabbable stacking block: a square post with a top stud. `hue`
+    /// tints it so the levels read as distinct. Dynamic until welded.
+    @discardableResult
+    func spawnTowerBlock(id: String, at position: SIMD3<Float>, hue: Double) -> ModelEntity {
+        let g = TowerGeometry.self
+        let size = SIMD3<Float>(Float(g.blockLength), Float(g.blockHeight), Float(g.blockWidth))
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: NSColor(hue: CGFloat(hue), saturation: 0.5, brightness: 0.85, alpha: 1))
+        material.roughness = 0.5; material.metallic = 0.1
+
+        let block = ModelEntity(mesh: .generateBox(size: size, cornerRadius: 0.006), materials: [material])
+        block.name = "part.\(id)"
+        block.position = position
+        addTowerStud(to: block, partHalfHeight: Float(g.blockHeight) / 2)
+
+        let shape = ShapeResource.generateBox(size: size)
+        block.components.set(CollisionComponent(shapes: [shape]))
+        var body = PhysicsBodyComponent(
+            shapes: [shape], mass: Float(g.blockMass),
+            material: PhysicsMaterialResource.generate(friction: currentFriction, restitution: 0.1),
+            mode: .dynamic
+        )
+        body.isContinuousCollisionDetectionEnabled = true
+        block.components.set(body)
+        objectsRoot.addChild(block)
+        return block
+    }
+
+    /// Spawns the grabbable tower cap (a wider overhanging lid, no stud). Dynamic.
+    @discardableResult
+    func spawnTowerCap(at position: SIMD3<Float>) -> ModelEntity {
+        let g = TowerGeometry.self
+        let size = SIMD3<Float>(Float(g.capLength), Float(g.capHeight), Float(g.capWidth))
+        let cap = ModelEntity(mesh: .generateBox(size: size, cornerRadius: 0.02), materials: [Self.towerCapMaterial])
+        cap.name = "part.\(Tower.capID)"
+        cap.position = position
+
+        let shape = ShapeResource.generateBox(size: size)
+        cap.components.set(CollisionComponent(shapes: [shape]))
+        var body = PhysicsBodyComponent(
+            shapes: [shape], mass: Float(g.capMass),
+            material: PhysicsMaterialResource.generate(friction: currentFriction, restitution: 0.1),
+            mode: .dynamic
+        )
+        body.isContinuousCollisionDetectionEnabled = true
+        cap.components.set(body)
+        objectsRoot.addChild(cap)
+        return cap
+    }
+
     /// Welds a part into the assembly at an EXACT world pose: makes it kinematic,
     /// reparents it under the (static) assembly root, and sets its transform. This
     /// is the snap-fit — no physics insertion, just an exact placement + weld.
@@ -1429,6 +1510,21 @@ final class SandboxScene {
         var m = PhysicallyBasedMaterial()
         m.baseColor = .init(tint: NSColor(white: 0.03, alpha: 1))
         m.roughness = 0.9; m.metallic = 0.1
+        return m
+    }()
+
+    // Tower part materials.
+    private static let towerBaseMaterial: PhysicallyBasedMaterial = {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: NSColor(white: 0.28, alpha: 1))
+        m.roughness = 0.6; m.metallic = 0.3
+        return m
+    }()
+
+    private static let towerCapMaterial: PhysicallyBasedMaterial = {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: NSColor(red: 0.86, green: 0.66, blue: 0.28, alpha: 1))
+        m.roughness = 0.4; m.metallic = 0.5
         return m
     }()
 

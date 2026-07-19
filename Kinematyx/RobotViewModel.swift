@@ -21,10 +21,11 @@ import RobotArmKit
 @MainActor
 @Observable
 final class RobotViewModel {
-    /// The arm being simulated. Swappable between profiles (Phase 10).
-    private(set) var arm: RobotArm = .ur5
+    /// The arm being simulated. Swappable between profiles (Phase 10). The app
+    /// opens on the UR3 (index 1 in `allProfiles`).
+    private(set) var arm: RobotArm = .ur3
     /// Index into `RobotArm.allProfiles` for the current arm.
-    private(set) var profileIndex = 0
+    private(set) var profileIndex = 1
 
     /// On-screen scale for the current arm, chosen so different-reach arms look a
     /// similar size. (UR5 reaches ~0.85 m, UR3 ~0.5 m.)
@@ -35,7 +36,7 @@ final class RobotViewModel {
     var jointAngles: [Double]
 
     init() {
-        jointAngles = [Double](repeating: 0, count: RobotArm.ur5.degreesOfFreedom)
+        jointAngles = [Double](repeating: 0, count: RobotArm.ur3.degreesOfFreedom)
     }
 
     /// Sends the arm back to its home position (all joints at 0 radians).

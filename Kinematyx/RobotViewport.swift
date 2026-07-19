@@ -20,9 +20,6 @@ struct RobotViewport: View {
     var drawStore: DrawnShapeStore
     var assembly: AssemblyController
 
-    /// TEMP: guards the headless auto-test so it fires only once.
-    nonisolated(unsafe) static var autotestStarted = false
-
     /// Current lighting/environment preset (Phase 7).
     @State private var environment: EnvironmentPreset = .classroom
     /// Whether the draw-a-shape sheet is showing.
@@ -48,6 +45,10 @@ struct RobotViewport: View {
                     await scene.build(into: &content)
                     controller.attach(model: model, scene: scene)
                     assembly.attach(scene: scene, arm: controller)
+                    // The scene builds at its own default arm; sync it to the model's
+                    // starting profile (the app opens on the UR3) since the
+                    // profile-change handler doesn't fire for the initial value.
+                    scene.setArm(model.arm, scale: model.displayScale)
 
                     // One place drives everything each frame.
                     scene.onFrame = { [weak scene] dt in
@@ -63,17 +64,6 @@ struct RobotViewport: View {
                             scene.updateCameraToGripper()
                         } else {
                             scene.updateCamera(position: rig.position, focus: rig.focus)
-                        }
-                    }
-
-                    // TEMP DIAGNOSTIC: auto-run the assembly to capture logs headlessly.
-                    if ProcessInfo.processInfo.environment["KINEMATYX_AUTOTEST"] != nil, !Self.autotestStarted {
-                        Self.autotestStarted = true
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .seconds(2))
-                            assembly.loadCar()
-                            try? await Task.sleep(for: .seconds(1))
-                            assembly.startAuto()
                         }
                     }
                 }

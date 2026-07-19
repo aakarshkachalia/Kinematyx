@@ -36,19 +36,44 @@ final class AssemblyController {
     /// Position tolerance for a snap: the mating feature must be within this of
     /// its target socket (meters). Default 15 mm.
     static let snapPositionTolerance: Double = 0.015
-    /// Orientation tolerance for a snap (radians). Default 15°.
+    /// Orientation tolerance for a snap (radians), measured as the tilt of the
+    /// insertion axis (rotation ABOUT it is free — the features are round). Default 15°.
     static let snapOrientationTolerance: Double = 15 * .pi / 180
+    /// Auto-assembly seat-fallback position tolerance (meters): if the live snap
+    /// didn't fire but the part is this close to its exact mate spot, seat it anyway
+    /// (the weld fixes orientation). Default 25 mm.
+    static let snapFallbackPositionTolerance: Double = 0.025
 
     // MARK: State
 
-    let definition = ModelCar.definition
+    /// The models the arm can build. Each maps to an `AssemblyDefinition` in
+    /// RobotArmKit and its own scene-spawning layout.
+    enum Model: String, CaseIterable, Identifiable {
+        case car = "Model car"
+        case tower = "Tower"
+        var id: String { rawValue }
+
+        var definition: AssemblyDefinition {
+            switch self {
+            case .car:   return ModelCar.definition
+            case .tower: return Tower.definition
+            }
+        }
+    }
+
+    /// The model currently loaded (or last chosen). Drives `definition`.
+    private(set) var model: Model = .car
+    var definition: AssemblyDefinition { model.definition }
+
     private unowned var scene: SandboxScene!
     private unowned var arm: ArmController!
 
-    /// partID → its scene entity (chassis, wheels, body).
+    /// partID → its scene entity.
     private var entities: [String: ModelEntity] = [:]
-    /// World pose of the fixed base part (chassis).
-    private var basePartWorld: Pose?
+    /// partID → its known WORLD pose: the fixed base part plus every part welded so
+    /// far. A step's target may be ANY already-placed part (a tower block stacks on
+    /// the block below), so we track them all rather than a single base pose.
+    private var placedWorld: [String: Pose] = [:]
 
     private(set) var completedSteps: Set<String> = []
     private(set) var loaded = false
@@ -91,48 +116,22 @@ final class AssemblyController {
 
     // MARK: Loading / reset
 
-    /// Spawns the chassis (fixed) plus the wheels and body in the tray.
-    func loadCar() {
+    /// Horizontal shift of the WHOLE model preset out along +X, away from the arm
+    /// base at the origin. This pushes every mating feature out of the arm's inner
+    /// dead zone and into its dexterous workspace, while staying within reach.
+    static let siteOffset = SIMD3<Float>(0.22, 0, 0)
+
+    /// Loads the given model: spawns its fixed base at the build site and its loose
+    /// pieces staged in the supply tray, and resets progress. Safe to call while a
+    /// build (or auto-run) is in progress — it stops and clears first.
+    func load(_ model: Model) {
+        stopAuto()
+        self.model = model
         clear()
-        let benchTop = scene.benchTopHeight
-        print("[assembly] loadCar — arm base at \(scene.armBaseWorld) (expect z=-0.15 in current build)")
-
-        // Everything is grouped in the front-right work area, spaced generously and
-        // well clear of the arm's base column (~0.18 m radius) so no part spawns on
-        // top of the arm. Loose parts are FROZEN (kinematic) so the arm can't knock
-        // them off or bump them out of place — each becomes movable only once it's
-        // grasped, and falls under gravity if a placement is released short.
-
-        // Parts tray: a mat under the loose parts (wheels + body).
-        scene.spawnTray(center: SIMD3<Float>(0.48, benchTop + 0.003, 0.42),
-                        size: SIMD2<Float>(0.64, 1.00))
-
-        // Chassis: fixed build site, nearest the arm but still clear of the base.
-        let chassisY = benchTop + Float(CarGeometry.chassisHeight) / 2
-        let chassisPose = Pose(position: SIMD3<Double>(0.46, Double(chassisY), -0.28))
-        entities[ModelCar.chassisID] = scene.spawnChassis(at: chassisPose)
-        basePartWorld = chassisPose
-
-        // Wheels: laid flat in a widely-spaced 2×2 grid on the tray.
-        let wheelY = benchTop + Float(CarGeometry.wheelThickness) / 2
-        let wheelSpots: [SIMD3<Float>] = [
-            SIMD3<Float>(0.30, wheelY, 0.40),
-            SIMD3<Float>(0.66, wheelY, 0.40),
-            SIMD3<Float>(0.30, wheelY, 0.76),
-            SIMD3<Float>(0.66, wheelY, 0.76),
-        ]
-        for (i, w) in ModelCar.wheels.enumerated() {
-            let wheel = scene.spawnWheel(id: w.id, at: wheelSpots[i])
-            scene.setFrozen(wheel, true)          // sit still until grasped
-            entities[w.id] = wheel
+        switch model {
+        case .car:   spawnCar()
+        case .tower: spawnTower()
         }
-
-        // Body shell: on the tray between the wheels and the chassis, clear of both.
-        let bodyY = benchTop + Float(CarGeometry.bodyHeight) / 2
-        let body = scene.spawnBody(at: SIMD3<Float>(0.46, bodyY, 0.06))
-        scene.setFrozen(body, true)
-        entities[ModelCar.bodyID] = body
-
         completedSteps = []
         lastEvent = nil
         indicator = nil
@@ -141,18 +140,99 @@ final class AssemblyController {
         loaded = true
     }
 
-    /// Returns everything to the tray and clears progress.
+    /// Convenience retained for existing callers.
+    func loadCar() { load(.car) }
+
+    /// The chassis (fixed) plus the wheels and body staged in the tray.
+    private func spawnCar() {
+        let benchTop = scene.benchTopHeight
+        let site = Self.siteOffset
+
+        // Parts tray: a mat under the loose parts (wheels + body).
+        scene.spawnTray(center: SIMD3<Float>(0.48, benchTop + 0.003, 0.42) + site,
+                        size: SIMD2<Float>(0.64, 1.00))
+
+        // Chassis: fixed build site, out along +X but clear of the base.
+        let chassisY = benchTop + Float(CarGeometry.chassisHeight) / 2
+        let chassisPose = Pose(position: SIMD3<Double>(SIMD3<Float>(0.46, chassisY, -0.28) + site))
+        entities[ModelCar.chassisID] = scene.spawnChassis(at: chassisPose)
+        placedWorld[ModelCar.chassisID] = chassisPose
+
+        // Wheels: laid flat in a widely-spaced 2×2 grid on the tray.
+        let wheelY = benchTop + Float(CarGeometry.wheelThickness) / 2
+        let wheelSpots: [SIMD3<Float>] = [
+            SIMD3<Float>(0.30, wheelY, 0.40) + site,
+            SIMD3<Float>(0.66, wheelY, 0.40) + site,
+            SIMD3<Float>(0.30, wheelY, 0.76) + site,
+            SIMD3<Float>(0.66, wheelY, 0.76) + site,
+        ]
+        for (i, w) in ModelCar.wheels.enumerated() {
+            let wheel = scene.spawnWheel(id: w.id, at: wheelSpots[i])
+            scene.setFrozen(wheel, true)          // sit still until grasped
+            entities[w.id] = wheel
+        }
+
+        // Body shell: on the tray between the wheels and the chassis.
+        let bodyY = benchTop + Float(CarGeometry.bodyHeight) / 2
+        let body = scene.spawnBody(at: SIMD3<Float>(0.46, bodyY, 0.06) + site)
+        scene.setFrozen(body, true)
+        entities[ModelCar.bodyID] = body
+    }
+
+    /// The tower base (fixed, at the build site) plus the loose blocks and cap laid
+    /// out in a supply tray OFF TO THE SIDE, so the arm fetches each and carries it
+    /// over to stack it.
+    private func spawnTower() {
+        let g = TowerGeometry.self
+        let benchTop = scene.benchTopHeight
+        let site = Self.siteOffset
+
+        // Build site: the base plate, nearest the arm along +X. The tower rises here.
+        let baseY = benchTop + Float(g.baseHeight) / 2
+        let basePose = Pose(position: SIMD3<Double>(SIMD3<Float>(0.42, baseY, -0.20) + site))
+        entities[Tower.baseID] = scene.spawnTowerBase(at: basePose)
+        placedWorld[Tower.baseID] = basePose
+
+        // Supply tray: a mat holding the loose blocks + cap, off to the +Z side and
+        // clear of the build column.
+        scene.spawnTray(center: SIMD3<Float>(0.50, benchTop + 0.003, 0.52) + site,
+                        size: SIMD2<Float>(0.72, 0.86))
+
+        // Lay the loose pieces in a widely-spaced grid on the tray (7 spots: 6
+        // blocks + cap), all reachable for a straight-down pick.
+        let blockY = benchTop + Float(g.blockHeight) / 2
+        let capY = benchTop + Float(g.capHeight) / 2
+        let cols: [Float] = [0.26, 0.50, 0.74]
+        let rows: [Float] = [0.34, 0.58, 0.82]
+        var spots: [SIMD3<Float>] = []
+        for r in rows { for c in cols { spots.append(SIMD3<Float>(c, blockY, r) + site) } }
+
+        let count = Tower.blocks.count
+        for (i, b) in Tower.blocks.enumerated() {
+            let block = scene.spawnTowerBlock(id: b.id, at: spots[i], hue: Double(i) / Double(count))
+            scene.setFrozen(block, true)
+            entities[b.id] = block
+        }
+        // Cap goes in the next free spot, sitting a touch lower (thinner piece).
+        var capSpot = spots[Tower.blocks.count]
+        capSpot.y = capY
+        let cap = scene.spawnTowerCap(at: capSpot)
+        scene.setFrozen(cap, true)
+        entities[Tower.capID] = cap
+    }
+
+    /// Returns everything to the tray and clears progress (same model).
     func reset() {
         stopAuto()
         guard loaded else { return }
-        loadCar()
+        load(model)
     }
 
     private func clear() {
         for entity in entities.values { entity.removeFromParent() }
         scene.clearAssembly()
         entities = [:]
-        basePartWorld = nil
+        placedWorld = [:]
         loaded = false
     }
 
@@ -163,8 +243,8 @@ final class AssemblyController {
               let held = arm.heldEntity,
               let partID = partID(of: held),
               let step = candidateStep(forMovingPart: partID),
-              let base = basePartWorld,
-              let mate = definition.mateWorldPose(for: step, targetPartWorld: base),
+              let targetWorld = placedWorld[step.targetPartID],
+              let mate = definition.mateWorldPose(for: step, targetPartWorld: targetWorld),
               let movingPart = definition.part(id: partID)
         else {
             indicator = nil
@@ -177,13 +257,28 @@ final class AssemblyController {
         // the part's axis points INTO the socket, antiparallel to it.)
         let heldPose = scene.worldPose(of: held)
         let distance = heldPose.positionDistance(to: mate)
+
+        // The mating features here (round pegs/holes, studs/sockets) are symmetric
+        // about their insertion axis, so ROTATION ABOUT THAT AXIS (yaw) is physically
+        // irrelevant — a wheel spun on its hub, or a square block yawed on a round
+        // stud, still seats. We therefore gate the snap on the AXIS TILT (how far the
+        // held feature's insertion axis is from the mated one), not the full frame
+        // angle, which would otherwise reject a perfectly-seated but yawed part.
         let angle = heldPose.angularDistance(to: mate)
-        let within = distance <= Self.snapPositionTolerance && angle <= Self.snapOrientationTolerance
+        let axisTilt: Double
+        if let feature = movingPart.feature(id: step.movingFeatureID) {
+            let heldAxis = simd_normalize(heldPose.orientation * feature.localInsertionAxis)
+            let mateAxis = simd_normalize(mate.orientation * feature.localInsertionAxis)
+            axisTilt = acos(max(-1, min(1, simd_dot(heldAxis, mateAxis))))
+        } else {
+            axisTilt = angle
+        }
+        let within = distance <= Self.snapPositionTolerance && axisTilt <= Self.snapOrientationTolerance
 
         indicator = Indicator(
             partName: movingPart.name,
             distanceMillimeters: distance * 1000,
-            angleDegrees: angle * 180 / .pi,
+            angleDegrees: axisTilt * 180 / .pi,
             withinTolerance: within
         )
 
@@ -195,6 +290,7 @@ final class AssemblyController {
     private func snap(step: AssemblyStep, entity: ModelEntity, mate: Pose, partName: String) {
         scene.weldPart(entity, toWorld: mate)      // exact pose + kinematic + welded
         arm.handOffHeldObject()                    // gripper no longer owns it
+        placedWorld[step.movingPartID] = mate      // later pieces may stack on this one
         completedSteps.insert(step.id)
         scene.pulseHighlight(entity)               // brief glow
         arm.audio.playClick()                      // soft click
@@ -264,30 +360,27 @@ final class AssemblyController {
     /// One full pick-place-insert-snap cycle. Returns false (and sets
     /// `failureMessage`) if IK is unreachable or the part fails to snap.
     private func performStep(_ step: AssemblyStep) async -> Bool {
-        guard let entity = entities[step.movingPartID], let base = basePartWorld,
-              let insertion = definition.insertionPoses(for: step, targetPartWorld: base, backoff: 0.06)
-        else { failureMessage = "Step \(step.id): missing part or base."; return false }
+        guard let entity = entities[step.movingPartID],
+              let targetWorld = placedWorld[step.targetPartID],
+              let insertion = definition.insertionPoses(for: step, targetPartWorld: targetWorld, backoff: 0.06)
+        else { failureMessage = "Step \(step.id): missing part or target."; return false }
 
         let center = scene.worldPose(of: entity).position
-        print("[assembly] \(step.id): part at \(center)")
 
         // 1. Approach directly above the part (tool down), routing around the others.
         let approachPose = downTool(at: center + SIMD3<Double>(0, 0.22, 0))
-        print("[assembly] \(step.id) approach: \(arm.reachDiagnostic(approachPose))")
         guard await planMove(to: approachPose, excluding: step.movingPartID, status: .movingToObject)
         else { return failIK(step, "approach") }
 
         // 2. Descend onto it.
         let descendPose = downTool(at: center + SIMD3<Double>(0, 0.02, 0))
-        print("[assembly] \(step.id) descend: \(arm.reachDiagnostic(descendPose))")
         guard await move(to: descendPose)
         else { return failIK(step, "descend") }
 
-        // 3. Close to grab, then capture how the part sits in the tool frame so we
-        //    can command the PART to any world pose from here on.
-        await arm.closeGripperAsync()
+        // 3. Close to grab the KNOWN part directly, then capture how it sits in the
+        //    tool frame so we can command the PART to any world pose from here on.
+        await arm.closeGripperOnPart(entity)
         guard arm.isHolding else {
-            print("[assembly] \(step.id): FAILED to grasp")
             metrics.failedSnaps += 1
             failureMessage = "Step \(step.id): failed to grasp the part."
             return false
@@ -299,7 +392,6 @@ final class AssemblyController {
 
         // 5. Go to the pre-insert standoff, routing the held part around the others.
         let preInsertPose = toolPose(part: insertion.preInsert, partInTool: partInTool)
-        print("[assembly] \(step.id) pre-insert: \(arm.reachDiagnostic(preInsertPose))")
         guard await planMove(to: preInsertPose, excluding: step.movingPartID)
         else { return failIK(step, "pre-insert") }
 
@@ -323,11 +415,19 @@ final class AssemblyController {
             try? await Task.sleep(for: .milliseconds(28))
         }
 
-        // 7. Confirm it snapped.
+        // 7. Confirm it seated. SNAP-FIT FALLBACK: if the live snap check didn't
+        //    fire but the part reached its target SPOT, seat it exactly anyway —
+        //    the weld sets the precise mated pose, so a slightly-off approach
+        //    orientation shouldn't reject a part that's physically there. Only fail
+        //    if it genuinely never arrived.
+        if !completedSteps.contains(step.id), arm.isHolding,
+           scene.worldPose(of: entity).positionDistance(to: insertion.mate) <= Self.snapFallbackPositionTolerance {
+            snap(step: step, entity: entity, mate: insertion.mate,
+                 partName: definition.part(id: step.movingPartID)?.name ?? step.id)
+        }
         guard completedSteps.contains(step.id) else {
-            print("[assembly] \(step.id): inserted but never within snap tolerance (last indicator: \(indicator.map { "\($0.distanceMillimeters)mm \($0.angleDegrees)deg" } ?? "nil"))")
             metrics.failedSnaps += 1
-            failureMessage = "Step \(step.id): part never came within snap tolerance."
+            failureMessage = "Step \(step.id): part never reached its target."
             return false
         }
 
@@ -359,11 +459,11 @@ final class AssemblyController {
     }
 
     /// Bounding-sphere obstacles for the planner: every part except the one being
-    /// handled and the chassis (the build target the arm must reach into). Already-
-    /// placed wheels are included, so later moves avoid them too.
+    /// handled and the fixed base (the build target the arm must reach into).
+    /// Already-placed parts are included, so later moves route around them too.
     private func obstacleSpheres(excluding excludedID: String?) -> [CollisionSphere] {
         var spheres: [CollisionSphere] = []
-        for (id, entity) in entities where id != excludedID && id != ModelCar.chassisID {
+        for (id, entity) in entities where id != excludedID && id != definition.basePartID {
             let bounds = entity.visualBounds(relativeTo: nil)
             let radius = simd_length(bounds.extents) / 2
             spheres.append(scene.robotFrameSphere(worldCenter: bounds.center, worldRadius: radius))

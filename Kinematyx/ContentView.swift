@@ -362,10 +362,25 @@ private struct SequenceSection: View {
 private struct AssemblySection: View {
     var assembly: AssemblyController
 
+    /// Which model to build when nothing is loaded yet.
+    @State private var selectedModel: AssemblyController.Model = .car
+
+    /// Drives the model picker: when a model is loaded it reflects (and switches)
+    /// the loaded model; otherwise it just picks what "Load" will build.
+    private var modelSelection: Binding<AssemblyController.Model> {
+        Binding(
+            get: { assembly.loaded ? assembly.model : selectedModel },
+            set: { newModel in
+                selectedModel = newModel
+                if assembly.loaded, newModel != assembly.model { assembly.load(newModel) }
+            }
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("Assembly", systemImage: "car.side.fill")
+                Label("Assembly", systemImage: "shippingbox.fill")
                     .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
                 Spacer()
                 if assembly.loaded {
@@ -375,13 +390,22 @@ private struct AssemblySection: View {
                 }
             }
 
+            // Model picker is always available. Before anything is loaded it just
+            // chooses what "Load" will build; once a model is loaded, changing it
+            // switches models immediately (stopping and clearing the current build).
+            Picker("Model", selection: modelSelection) {
+                ForEach(AssemblyController.Model.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
             if !assembly.loaded {
-                Button { assembly.loadCar() } label: {
-                    Label("Load model car", systemImage: "shippingbox.fill")
+                Button { assembly.load(selectedModel) } label: {
+                    Label("Load \(selectedModel.rawValue.lowercased())", systemImage: "shippingbox.fill")
                         .font(.callout.weight(.medium)).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent).tint(Theme.accent)
-                Text("Grab a wheel, line its hub up with an axle, and it snaps on. All four wheels go on before the body.")
+                Text(hint(for: selectedModel))
                     .font(.caption2).foregroundStyle(.secondary)
             } else {
                 ForEach(assembly.stepStates(), id: \.id) { step in
@@ -414,7 +438,7 @@ private struct AssemblySection: View {
                 .buttonStyle(.bordered)
 
                 if assembly.isComplete {
-                    Text("Car complete! Real factories time every step like this — a half-second saved per car is thousands of cars a year.")
+                    Text("Build complete! Real factories time every step like this — a half-second saved per unit is thousands of units a year.")
                         .font(.caption2).foregroundStyle(.green)
                 }
             }
@@ -422,6 +446,15 @@ private struct AssemblySection: View {
         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
         .background(.background.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.cardCorner))
         .animation(.snappy, value: assembly.completedCount)
+    }
+
+    private func hint(for model: AssemblyController.Model) -> String {
+        switch model {
+        case .car:
+            return "Grab a wheel, line its hub up with an axle, and it snaps on. All four wheels go on before the body."
+        case .tower:
+            return "Blocks are staged in the supply tray. The arm stacks them bottom-up — each onto the stud below — then adds the cap."
+        }
     }
 
     @ViewBuilder private var autoControls: some View {
