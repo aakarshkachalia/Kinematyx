@@ -20,6 +20,9 @@ struct RobotViewport: View {
     var drawStore: DrawnShapeStore
     var assembly: AssemblyController
 
+    /// TEMP: guards the headless auto-test so it fires only once.
+    nonisolated(unsafe) static var autotestStarted = false
+
     /// Current lighting/environment preset (Phase 7).
     @State private var environment: EnvironmentPreset = .classroom
     /// Whether the draw-a-shape sheet is showing.
@@ -64,7 +67,8 @@ struct RobotViewport: View {
                     }
 
                     // TEMP DIAGNOSTIC: auto-run the assembly to capture logs headlessly.
-                    if ProcessInfo.processInfo.environment["KINEMATYX_AUTOTEST"] != nil {
+                    if ProcessInfo.processInfo.environment["KINEMATYX_AUTOTEST"] != nil, !Self.autotestStarted {
+                        Self.autotestStarted = true
                         Task { @MainActor in
                             try? await Task.sleep(for: .seconds(2))
                             assembly.loadCar()
