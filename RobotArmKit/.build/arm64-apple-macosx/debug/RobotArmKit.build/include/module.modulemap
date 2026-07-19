@@ -1,0 +1,3 @@
+module RobotArmKit {
+    header "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/include/RobotArmKit-Swift.h"
+}

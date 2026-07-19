@@ -1,0 +1,868 @@
+{
+  "builtTestProducts" : [
+    {
+      "binaryPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.xctest/Contents/MacOS/RobotArmKitPackageTests",
+      "packagePath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit",
+      "productName" : "RobotArmKitPackageTests"
+    }
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.RobotArmKit-arm64-apple-macosx-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/sources",
+      "importPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Assembly.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Collision.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/DHParameter.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/InverseKinematics.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Joint.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/ModelCar.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/MotionPlanner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Pose.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotArm.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotDynamics.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "RobotArmKit",
+      "moduleOutputPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules/RobotArmKit.swiftmodule",
+      "objects" : [
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Assembly.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Collision.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/DHParameter.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/InverseKinematics.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Joint.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/ModelCar.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/MotionPlanner.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Pose.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotArm.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotDynamics.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx13.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/include/RobotArmKit-Swift.h",
+        "-swift-version",
+        "6",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "robotarmkit"
+      ],
+      "outputFileMapPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Assembly.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Collision.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/DHParameter.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/InverseKinematics.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Joint.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/ModelCar.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/MotionPlanner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Pose.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotArm.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotDynamics.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules/RobotArmKit.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Assembly.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Collision.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/DHParameter.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/InverseKinematics.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Joint.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/ModelCar.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/MotionPlanner.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Pose.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotArm.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotDynamics.swift"
+      ],
+      "tempsPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.RobotArmKitPackageTests-arm64-apple-macosx-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/sources",
+      "importPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.derived/runner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules/RobotArmKitTests.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "RobotArmKitPackageTests",
+      "moduleOutputPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules/RobotArmKitPackageTests.swiftmodule",
+      "objects" : [
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/runner.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx13.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/include/RobotArmKitPackageTests-Swift.h",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "robotarmkit"
+      ],
+      "outputFileMapPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules/RobotArmKitPackageTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.derived/runner.swift"
+      ],
+      "tempsPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.RobotArmKitTests-arm64-apple-macosx-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/sources",
+      "importPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/AssemblyTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/DynamicsTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/ForwardKinematicsTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/InverseKinematicsTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/MotionPlanningTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/WheelRRDiag.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules/RobotArmKit.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "RobotArmKitTests",
+      "moduleOutputPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules/RobotArmKitTests.swiftmodule",
+      "objects" : [
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/AssemblyTests.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/DynamicsTests.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/ForwardKinematicsTests.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/InverseKinematicsTests.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/MotionPlanningTests.swift.o",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/WheelRRDiag.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-swift-version",
+        "6",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "robotarmkit"
+      ],
+      "outputFileMapPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/AssemblyTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/DynamicsTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/ForwardKinematicsTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/InverseKinematicsTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/MotionPlanningTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/WheelRRDiag.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules/RobotArmKitTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/AssemblyTests.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/DynamicsTests.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/ForwardKinematicsTests.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/InverseKinematicsTests.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/MotionPlanningTests.swift",
+        "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/WheelRRDiag.swift"
+      ],
+      "tempsPath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "RobotArmKit" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "RobotArmKit",
+      "-package-name",
+      "robotarmkit",
+      "-c",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Assembly.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Collision.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/DHParameter.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/InverseKinematics.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Joint.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/ModelCar.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/MotionPlanner.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Pose.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotArm.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotDynamics.swift",
+      "-I",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx13.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/include/RobotArmKit-Swift.h",
+      "-swift-version",
+      "6",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "robotarmkit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "RobotArmKitPackageTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "RobotArmKitPackageTests",
+      "-package-name",
+      "robotarmkit",
+      "-c",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.derived/runner.swift",
+      "-I",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx13.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/include/RobotArmKitPackageTests-Swift.h",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "robotarmkit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "RobotArmKitTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "RobotArmKitTests",
+      "-package-name",
+      "robotarmkit",
+      "-c",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/AssemblyTests.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/DynamicsTests.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/ForwardKinematicsTests.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/InverseKinematicsTests.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/MotionPlanningTests.swift",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/WheelRRDiag.swift",
+      "-I",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-swift-version",
+      "6",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "robotarmkit",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "RobotArmKit" : [
+
+    ],
+    "RobotArmKitPackageTests" : [
+      "RobotArmKitTests",
+      "RobotArmKit"
+    ],
+    "RobotArmKitTests" : [
+      "RobotArmKit"
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+    "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.derived/runner.swift" : {
+      "inputs" : [
+
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.derived/runner.swift"
+        }
+      ]
+    }
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Assembly.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Collision.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/DHParameter.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/InverseKinematics.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Joint.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/ModelCar.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/MotionPlanner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/Pose.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotArm.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Sources/RobotArmKit/RobotDynamics.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/sources"
+    },
+    "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.derived/runner.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/sources"
+    },
+    "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Assembly.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Collision.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/DHParameter.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/InverseKinematics.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Joint.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/ModelCar.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/MotionPlanner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/Pose.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotArm.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKit.build/RobotDynamics.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/AssemblyTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/DynamicsTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/ForwardKinematicsTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/InverseKinematicsTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/MotionPlanningTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/WheelRRDiag.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitPackageTests.product/Objects.LinkFileList"
+    },
+    "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/AssemblyTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/DynamicsTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/ForwardKinematicsTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/InverseKinematicsTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/MotionPlanningTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/Tests/RobotArmKitTests/WheelRRDiag.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/RobotArmKitTests.build/sources"
+    },
+    "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/aakarshkachalia/Developer/Kinematix/RobotArmKit/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}
